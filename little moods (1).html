@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>little moods</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --cream:#FFF7EE; --peach:#F8C9A6; --peach-d:#EE9F76; --coral:#EE8F78;
+    --blush:#F5D2C8; --rose:#EFAAA0; --butter:#FBE2A4; --mint:#CFEADC;
+    --sage:#BACDBF; --sage-d:#8EAF99; --ink:#6B4A3F; --ink-soft:#A17F72;
+    --shadow:0 26px 50px -24px rgba(133,84,64,.45), 0 8px 18px -10px rgba(133,84,64,.25);
+    --inset:inset 0 1px 0 rgba(255,255,255,.75), inset 0 -2px 6px rgba(160,110,90,.06);
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth;background:#E9CFC4}
+  body{
+    margin:0; color:var(--ink); font-family:"Nunito",system-ui,sans-serif; min-height:100vh;
+    background:
+      url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.45  0 0 0 0 0.3  0 0 0 0 0.25  0 0 0 .07 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+      linear-gradient(90deg,#C9D2CA 0 30%,#E7CDC2 30% 66%,#F0DED3 66% 72%,#E9CFC4 72% 100%);
+    background-attachment:fixed;
+  }
+  h1,h2,h3,.brand{font-family:"Fredoka","Nunito",system-ui,sans-serif;font-weight:500;margin:0;letter-spacing:.01em}
+  button{font:inherit;color:inherit;cursor:pointer;border:0;background:none}
+  .wrap{max-width:1200px;margin:0 auto;padding:22px 22px 70px}
+
+  /* header */
+  header{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px;flex-wrap:wrap}
+  .brand{display:flex;align-items:center;gap:10px;font-size:26px}
+  .brand svg{width:46px;height:46px}
+  nav{display:flex;gap:8px;flex-wrap:wrap;background:rgba(255,247,238,.55);padding:6px;border-radius:999px;box-shadow:var(--inset),0 10px 24px -16px rgba(133,84,64,.5);backdrop-filter:blur(6px)}
+  nav a{padding:9px 16px;border-radius:999px;color:var(--ink);text-decoration:none;font-weight:700;font-size:14px;transition:.2s}
+  nav a:hover{background:var(--cream);box-shadow:0 6px 14px -8px rgba(133,84,64,.5)}
+  .status{font-size:12px;font-weight:700;color:var(--ink-soft);padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.45)}
+  .status.ok{color:#5f8d72}
+
+  /* cards */
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:22px}
+  .card{border-radius:34px;padding:26px;box-shadow:var(--shadow),var(--inset);position:relative;overflow:hidden}
+  .card h2{font-size:24px;margin-bottom:4px}
+  .sub{color:var(--ink-soft);font-size:14px;font-weight:600;margin:0 0 16px}
+  .span-5{grid-column:span 5}.span-7{grid-column:span 7}.span-4{grid-column:span 4}.span-8{grid-column:span 8}.span-6{grid-column:span 6}
+  @media (max-width:960px){.span-5,.span-7,.span-4,.span-8,.span-6{grid-column:span 12}}
+
+  /* hero */
+  .hero{background:linear-gradient(170deg,#FBD9BD 0%,#F8C7A3 55%,#F3B993 100%);min-height:560px;display:flex;flex-direction:column}
+  .hero-top{display:flex;justify-content:space-between;align-items:flex-start}
+  .avatar{width:44px;height:44px;border-radius:50%;background:var(--cream);display:grid;place-items:center;box-shadow:var(--inset),0 6px 14px -8px rgba(133,84,64,.5)}
+  .date{font-weight:700;font-size:13px;color:#9a6a55;text-transform:lowercase}
+  .greet{font-size:34px;line-height:1.1;margin-top:14px}
+  .greet .name{border-bottom:2px dashed rgba(107,74,63,.25);cursor:text;outline:none;min-width:40px;display:inline-block}
+  .hero .sub{color:#9a6a55;margin-top:8px}
+  .mascot{flex:1;display:flex;align-items:center;justify-content:center;margin:4px -10px}
+  .mascot svg{width:100%;max-width:400px;height:auto}
+  .bob{animation:bob 4.5s ease-in-out infinite}
+  @keyframes bob{50%{transform:translateY(-6px)}}
+  .twinkle{animation:tw 3s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+  @keyframes tw{50%{opacity:.35;transform:scale(.8)}}
+  .mini-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;background:linear-gradient(180deg,rgba(255,250,244,.92),rgba(255,247,238,.85));border-radius:26px;padding:12px;box-shadow:var(--inset)}
+  .mini{border-radius:20px;padding:12px 14px;background:#fff8f1}
+  .mini b{font-family:"Fredoka";font-weight:500;font-size:28px;display:block}
+  .mini span{font-size:12px;font-weight:700;color:var(--ink-soft)}
+  .hero-actions{display:flex;justify-content:center;gap:14px;margin-top:16px}
+  .round-btn{width:54px;height:54px;border-radius:50%;display:grid;place-items:center;box-shadow:0 10px 18px -10px rgba(133,84,64,.6),var(--inset);transition:transform .2s}
+  .round-btn:hover{transform:translateY(-3px)}
+  .round-btn.coral{background:radial-gradient(circle at 35% 30%,#F7B39C,#EE8F78)}
+  .round-btn.mint{background:radial-gradient(circle at 35% 30%,#E2F5EA,#A9DCC2)}
+
+  /* check in */
+  .checkin{background:linear-gradient(175deg,#FFF6EE 0%,#FBE7DD 60%,#F6D6CB 100%)}
+  .moods{display:grid;grid-template-columns:repeat(7,1fr);gap:8px;margin-bottom:18px}
+  @media (max-width:560px){.moods{grid-template-columns:repeat(4,1fr)}}
+  .mood{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 10px;border-radius:22px;transition:.25s;font-weight:700;font-size:12px;color:var(--ink-soft)}
+  .mood svg{width:100%;max-width:72px;height:auto;transition:transform .3s cubic-bezier(.3,1.6,.5,1)}
+  .mood:hover svg{transform:translateY(-4px) rotate(-4deg)}
+  .mood.on{background:rgba(255,255,255,.75);color:var(--ink);box-shadow:var(--inset),0 10px 20px -12px rgba(133,84,64,.5)}
+  .mood.on svg{transform:scale(1.08)}
+  .field-label{font-weight:800;font-size:13px;margin:0 0 8px;color:var(--ink)}
+  .panel{background:rgba(255,255,255,.55);border-radius:24px;padding:16px;box-shadow:var(--inset);margin-bottom:14px}
+  .intensity{display:flex;align-items:center;gap:12px}
+  .intensity small{font-weight:700;color:var(--ink-soft);font-size:12px;white-space:nowrap}
+  input[type=range]{flex:1;-webkit-appearance:none;appearance:none;height:12px;border-radius:999px;background:linear-gradient(90deg,#CFEADC,#FBE2A4,#F8C9A6,#EFAAA0);outline:none;box-shadow:inset 0 1px 3px rgba(107,74,63,.15)}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#F4E7DE);box-shadow:0 6px 12px -4px rgba(107,74,63,.45);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:28px;height:28px;border:0;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#F4E7DE);box-shadow:0 6px 12px -4px rgba(107,74,63,.45);cursor:pointer}
+  .tags{display:flex;flex-wrap:wrap;gap:8px}
+  .tag{padding:8px 14px;border-radius:999px;font-weight:700;font-size:13px;background:#fff7f0;box-shadow:var(--inset),0 4px 10px -8px rgba(107,74,63,.5);transition:.2s}
+  .tag.on{background:linear-gradient(135deg,#F8C9A6,#EFAAA0);color:#fff;text-shadow:0 1px 1px rgba(150,80,60,.3)}
+  textarea,input[type=text]{width:100%;border:0;border-radius:18px;padding:12px 14px;font:inherit;color:var(--ink);background:#fffaf5;box-shadow:inset 0 2px 5px rgba(107,74,63,.09);resize:vertical;outline:none}
+  textarea:focus,input[type=text]:focus{box-shadow:inset 0 2px 5px rgba(107,74,63,.09),0 0 0 3px rgba(238,159,118,.35)}
+  textarea::placeholder,input::placeholder{color:#c4a69a}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:560px){.two{grid-template-columns:1fr}}
+  .save{width:100%;padding:16px;border-radius:999px;font-family:"Fredoka";font-size:18px;font-weight:500;color:#fff;background:linear-gradient(180deg,#F4A88E,#EA8B72);box-shadow:0 14px 24px -12px rgba(200,100,75,.8),inset 0 1px 0 rgba(255,255,255,.5);text-shadow:0 1px 1px rgba(150,70,50,.3);transition:.2s}
+  .save:hover{transform:translateY(-2px)}
+  .save:disabled{opacity:.5;transform:none;cursor:not-allowed}
+
+  /* garden */
+  .garden{background:linear-gradient(175deg,#F7DCD4 0%,#EFCFC6 100%)}
+  .cal-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+  .cal-head h3{font-size:20px}
+  .cal-nav{display:flex;gap:6px}
+  .cal-nav button{width:36px;height:36px;border-radius:50%;background:var(--cream);box-shadow:var(--inset),0 6px 12px -8px rgba(107,74,63,.6);font-weight:800}
+  .cal{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+  .dow{text-align:center;font-size:11px;font-weight:800;color:var(--ink-soft);padding-bottom:4px}
+  .day{aspect-ratio:1;border-radius:18px;background:rgba(255,250,246,.5);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--ink-soft);position:relative;transition:.2s}
+  .day:hover{background:rgba(255,255,255,.85)}
+  .day.has{background:rgba(255,255,255,.75)}
+  .day svg{width:70%;height:auto;margin-top:-4px}
+  .day .n{position:absolute;top:4px;left:7px;font-size:10px}
+  .day.today{box-shadow:0 0 0 2px var(--peach-d)}
+  .day.sel{background:#fff;box-shadow:0 0 0 2px var(--sage-d),0 8px 16px -10px rgba(107,74,63,.6)}
+  .day.empty{background:transparent;pointer-events:none}
+
+  /* insights */
+  .insights{background:linear-gradient(175deg,#D2DDD3 0%,#BCCFC1 100%)}
+  .stat-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+  .stat{border-radius:24px;padding:14px 16px;box-shadow:var(--inset),0 10px 20px -14px rgba(70,90,75,.6)}
+  .stat.g{background:linear-gradient(170deg,#E3F2E9,#C6E3D3)}
+  .stat.y{background:linear-gradient(170deg,#FFF1CF,#FBDCA0)}
+  .stat b{font-family:"Fredoka";font-weight:500;font-size:30px;display:block;line-height:1.1}
+  .stat span{font-size:12px;font-weight:700;color:var(--ink-soft)}
+  .chart-box{background:rgba(255,252,248,.75);border-radius:24px;padding:14px 12px 6px;box-shadow:var(--inset)}
+  .chart-box svg{width:100%;height:auto;display:block}
+  .top-mood{display:flex;align-items:center;gap:12px;margin-top:14px;background:rgba(255,252,248,.6);border-radius:22px;padding:10px 14px}
+  .top-mood svg{width:52px;height:52px}
+  .top-mood p{margin:0;font-weight:700;font-size:14px}
+  .top-mood small{color:var(--ink-soft);font-weight:700}
+
+  /* journal */
+  .journal{background:linear-gradient(175deg,#C9D6CC 0%,#BDCDC1 100%)}
+  .j-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .chip-btn{padding:7px 14px;border-radius:999px;background:var(--cream);font-weight:700;font-size:12px;box-shadow:var(--inset),0 6px 12px -8px rgba(107,74,63,.6)}
+  .list{display:flex;flex-direction:column;gap:10px;max-height:560px;overflow:auto;padding:4px 4px 8px;margin:0 -4px}
+  .row{display:flex;gap:12px;align-items:flex-start;border-radius:28px;padding:9px 10px 9px 9px;box-shadow:var(--inset),0 10px 18px -14px rgba(90,70,60,.7)}
+  .row .ic{flex:none;width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,.8);display:grid;place-items:center;box-shadow:var(--inset)}
+  .row .ic svg{width:40px;height:40px}
+  .row .body{flex:1;min-width:0;padding-top:3px}
+  .row .t{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
+  .row .t b{font-family:"Fredoka";font-weight:500;font-size:17px}
+  .row .t small{font-weight:700;font-size:12px;opacity:.75}
+  .row .dots{display:inline-flex;gap:3px;margin-left:2px}
+  .row .dots i{width:6px;height:6px;border-radius:50%;background:rgba(107,74,63,.18)}
+  .row .dots i.f{background:rgba(107,74,63,.6)}
+  .row .note{margin:4px 0 0;font-size:14px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere}
+  .row .grat{margin:4px 0 0;font-size:13px;font-weight:700;opacity:.85}
+  .row .mtags{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+  .row .mtags span{font-size:11px;font-weight:800;padding:3px 9px;border-radius:999px;background:rgba(255,255,255,.6)}
+  .del{flex:none;width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.75);display:grid;place-items:center;font-size:14px;font-weight:800;color:var(--ink-soft);box-shadow:var(--inset);transition:.2s;margin-top:8px}
+  .del.ask{width:auto;padding:0 12px;border-radius:999px;background:#fff;color:#c4664f;font-size:12px}
+  .empty-state{text-align:center;padding:30px 10px;color:var(--ink-soft);font-weight:700}
+  .empty-state svg{width:110px;height:110px;display:block;margin:0 auto 6px}
+
+  /* breathe & kindness */
+  .breathe{background:linear-gradient(175deg,#FFF3E6 0%,#FBE3CF 100%);text-align:center}
+  .bubble-wrap{height:220px;display:grid;place-items:center}
+  .bubble{width:120px;height:120px;transition:transform 4s ease-in-out}
+  .bubble.in{transform:scale(1.55)}
+  .breath-txt{font-family:"Fredoka";font-size:20px;min-height:28px;margin-bottom:12px}
+  .pill-btn{padding:12px 26px;border-radius:999px;font-weight:800;background:linear-gradient(180deg,#D8EEE2,#AFD9C3);box-shadow:var(--inset),0 10px 18px -10px rgba(70,120,95,.7)}
+  .kind{background:linear-gradient(175deg,#FBE8C4 0%,#F6D4A6 100%)}
+  .quote{font-family:"Fredoka";font-size:24px;line-height:1.3;margin:14px 0 18px;min-height:94px}
+  .kind .deco{position:absolute;right:-12px;bottom:-14px;width:150px;opacity:.95}
+
+  .floaty{position:fixed;pointer-events:none;z-index:0;opacity:.9}
+  .wrap{position:relative;z-index:1}
+  .toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,120px);background:var(--cream);padding:12px 20px;border-radius:999px;font-weight:800;box-shadow:var(--shadow),var(--inset);transition:transform .4s cubic-bezier(.3,1.4,.5,1);z-index:10;display:flex;align-items:center;gap:8px}
+  .toast.show{transform:translate(-50%,0)}
+  .toast svg{width:30px;height:30px}
+  footer{text-align:center;color:var(--ink-soft);font-weight:700;font-size:13px;margin-top:34px}
+  @media (max-width:960px){.floaty{display:none}}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div id="floaties"></div>
+
+<div class="wrap">
+  <header>
+    <div class="brand" id="brand">little moods</div>
+    <nav>
+      <a href="#checkin">check in</a>
+      <a href="#garden">mood garden</a>
+      <a href="#journal">journal</a>
+      <a href="#breathe">breathe</a>
+    </nav>
+    <span class="status" id="status">opening your garden…</span>
+  </header>
+
+  <div class="grid">
+    <!-- HERO -->
+    <section class="card hero span-5">
+      <div class="hero-top">
+        <div>
+          <div class="date" id="today"></div>
+          <h1 class="greet">hi, <span class="name" id="name" contenteditable="true" spellcheck="false">lovely</span><br>how's your heart?</h1>
+          <p class="sub">a soft little space to notice how you feel.</p>
+        </div>
+        <div class="avatar" id="avatar"></div>
+      </div>
+      <div class="mascot" id="mascot"></div>
+      <div class="mini-stats">
+        <div class="mini"><b id="m-streak">0</b><span>day streak ✿</span></div>
+        <div class="mini"><b id="m-total">0</b><span>feelings noticed</span></div>
+      </div>
+      <div class="hero-actions">
+        <a class="round-btn coral" href="#checkin" title="check in" aria-label="check in"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg></a>
+        <a class="round-btn mint" href="#breathe" title="breathe" aria-label="breathe"><svg width="24" height="24" viewBox="0 0 24 24"><path d="M5 13c2-4 5-4 7 0s5 4 7 0" stroke="#5f8d72" stroke-width="2.6" fill="none" stroke-linecap="round"/></svg></a>
+      </div>
+    </section>
+
+    <!-- CHECK IN -->
+    <section class="card checkin span-7" id="checkin">
+      <h2>how are you feeling?</h2>
+      <p class="sub">pick the little friend that feels most like you right now.</p>
+      <div class="moods" id="moods"></div>
+
+      <div class="panel">
+        <p class="field-label">how strongly? <span id="int-word" style="color:var(--ink-soft)">· somewhat</span></p>
+        <div class="intensity"><small>a little</small><input type="range" id="intensity" min="1" max="5" value="3" aria-label="intensity"><small>a lot</small></div>
+      </div>
+
+      <div class="panel">
+        <p class="field-label">what's it about?</p>
+        <div class="tags" id="tags"></div>
+      </div>
+
+      <div class="two">
+        <div class="panel" style="margin-bottom:14px">
+          <p class="field-label">tell me more</p>
+          <textarea id="note" rows="3" placeholder="whatever's on your mind…"></textarea>
+        </div>
+        <div class="panel" style="margin-bottom:14px">
+          <p class="field-label">one tiny good thing</p>
+          <textarea id="grat" rows="3" placeholder="warm tea, a nice text, sunshine…"></textarea>
+        </div>
+      </div>
+      <button class="save" id="save" disabled>pick a feeling first</button>
+    </section>
+
+    <!-- GARDEN -->
+    <section class="card garden span-7" id="garden">
+      <h2>mood garden</h2>
+      <p class="sub">every day you check in, a little friend grows. tap a day to read it.</p>
+      <div class="cal-head">
+        <h3 id="cal-title"></h3>
+        <div class="cal-nav"><button id="prev" aria-label="previous month">‹</button><button id="next" aria-label="next month">›</button></div>
+      </div>
+      <div class="cal" id="cal"></div>
+    </section>
+
+    <!-- INSIGHTS -->
+    <section class="card insights span-5">
+      <h2>this week</h2>
+      <p class="sub">how bright your days have felt.</p>
+      <div class="stat-row">
+        <div class="stat g"><b id="s-week">0</b><span>check-ins this week</span></div>
+        <div class="stat y"><b id="s-bright">–</b><span>average brightness</span></div>
+      </div>
+      <div class="chart-box" id="chart"></div>
+      <div class="top-mood" id="top-mood"></div>
+    </section>
+
+    <!-- JOURNAL -->
+    <section class="card journal span-8" id="journal">
+      <div class="j-head">
+        <div>
+          <h2>feelings journal</h2>
+          <p class="sub" id="j-sub">your most recent check-ins.</p>
+        </div>
+        <button class="chip-btn" id="show-all" style="display:none">show all</button>
+      </div>
+      <div class="list" id="list"></div>
+    </section>
+
+    <div class="span-4" style="display:flex;flex-direction:column;gap:22px">
+      <section class="card breathe" id="breathe">
+        <h2>breathe with me</h2>
+        <p class="sub" style="margin-bottom:0">four counts in, four counts out.</p>
+        <div class="bubble-wrap"><div class="bubble" id="bubble"></div></div>
+        <div class="breath-txt" id="breath-txt">whenever you're ready</div>
+        <button class="pill-btn" id="breath-btn">start</button>
+      </section>
+      <section class="card kind">
+        <h2>a little note</h2>
+        <p class="quote" id="quote"></p>
+        <button class="chip-btn" id="new-quote">another one ↻</button>
+        <div class="deco" id="kind-deco"></div>
+      </section>
+    </div>
+  </div>
+
+  <footer>made with soft colours & kind thoughts ✿</footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ---------- little clay friends ---------- */
+const MOODS = {
+  joyful : {label:'joyful',  shape:'fruit', face:'happy',   score:5,   c:{l:'#FFF2CC',b:'#FFD487',d:'#EFAE5B'}},
+  loved  : {label:'loved',   shape:'peach', face:'loved',   score:5,   c:{l:'#FFE0D8',b:'#F8AEA5',d:'#E58479'}},
+  calm   : {label:'calm',    shape:'round', face:'calm',    score:4,   c:{l:'#E6F7EE',b:'#AEDDC5',d:'#7DBF9F'}},
+  tired  : {label:'tired',   shape:'cloud', face:'tired',   score:2.5, c:{l:'#FFFBF4',b:'#F2E4CF',d:'#D7C1A2'}},
+  anxious: {label:'anxious', shape:'drop',  face:'anxious', score:2,   c:{l:'#FFEBD9',b:'#FBC398',d:'#EC9D6B'}},
+  sad    : {label:'sad',     shape:'drop',  face:'sad',     score:1.5, c:{l:'#EAF3F7',b:'#BCD5E1',d:'#8FB2C4'}},
+  angry  : {label:'grumpy',  shape:'mound', face:'angry',   score:1.5, c:{l:'#FFD6CB',b:'#F49C88',d:'#D87561'}},
+};
+const ORDER = ['joyful','loved','calm','tired','anxious','sad','angry'];
+let gid = 0;
+
+function face(kind){
+  const s = 'stroke="#6B4A3F" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"';
+  const blush = '<ellipse cx="31" cy="68" rx="5.5" ry="3.2" fill="#EF7F70" opacity=".42"/><ellipse cx="69" cy="68" rx="5.5" ry="3.2" fill="#EF7F70" opacity=".42"/>';
+  switch(kind){
+    case 'happy':  return blush+`<path ${s} d="M36 62q4-5 8 0M56 62q4-5 8 0"/><path ${s} d="M44 68q6 6 12 0"/>`;
+    case 'loved':  return blush+`<path ${s} d="M36 60q4 4 8 0M56 60q4 4 8 0"/><path ${s} d="M45 68q5 4.5 10 0"/><path d="M73 47c0-2 2.5-3 3.5-1.2 1-1.8 3.5-.8 3.5 1.2 0 2.2-3.5 4-3.5 4s-3.5-1.8-3.5-4z" fill="#EF7F70"/>`;
+    case 'calm':   return blush+`<path ${s} d="M36 60q4 4 8 0M56 60q4 4 8 0"/><path ${s} d="M46 68q4 3 8 0"/>`;
+    case 'tired':  return blush+`<path ${s} d="M36 62h8M56 62h8"/><ellipse cx="50" cy="70" rx="2.6" ry="3" fill="#6B4A3F"/><text x="70" y="44" font-family="Fredoka" font-size="11" fill="#A17F72">z</text><text x="77" y="36" font-family="Fredoka" font-size="8" fill="#A17F72">z</text>`;
+    case 'anxious':return blush+`<circle cx="40" cy="61" r="2.4" fill="#6B4A3F"/><circle cx="60" cy="61" r="2.4" fill="#6B4A3F"/><path ${s} d="M42 71q2-3 4 0t4 0t4 0t4 0"/><path d="M71 46c0 0 4 5 4 7.5a4 4 0 0 1-8 0c0-2.5 4-7.5 4-7.5z" fill="#CDE6F2" stroke="#9CC3D6" stroke-width="1"/>`;
+    case 'sad':    return blush+`<path ${s} d="M36 60q4 4 8 0M56 60q4 4 8 0"/><path ${s} d="M45 72q5-4 10 0"/><path d="M38 66c0 0 2.5 3.2 2.5 4.8a2.5 2.5 0 0 1-5 0c0-1.6 2.5-4.8 2.5-4.8z" fill="#BFE0F0"/>`;
+    case 'angry':  return blush+`<path ${s} d="M35 56l8 3M65 56l-8 3"/><circle cx="41" cy="63" r="2.4" fill="#6B4A3F"/><circle cx="59" cy="63" r="2.4" fill="#6B4A3F"/><path ${s} d="M45 72q5-3 10 0"/>`;
+  }
+  return '';
+}
+
+function body(shape, g){
+  const f = `fill="url(#${g})"`;
+  const leaf = (x,y,r)=>`<g transform="translate(${x} ${y}) rotate(${r})"><path d="M0 0C4-10 18-13 25-9 19 1 7 4 0 0z" fill="#93B79D"/><path d="M0 0C4-10 18-13 25-9 19 1 7 4 0 0z" fill="url(#lf${g})"/><path d="M2-1C9-5 15-7 21-8" stroke="#7DA187" stroke-width="1.2" fill="none" stroke-linecap="round"/></g>`;
+  switch(shape){
+    case 'round': return `<ellipse cx="50" cy="60" rx="34" ry="31" ${f}/>`;
+    case 'fruit': return `<ellipse cx="50" cy="61" rx="33" ry="31" ${f}/>`+leaf(48,32,-18);
+    case 'peach': return `<path d="M50 34C35 26 16 38 16 59c0 18 15 31 34 31s34-13 34-31C84 38 65 26 50 34z" ${f}/><path d="M50 36c-3 8-3 16 0 22" stroke="rgba(200,110,100,.25)" stroke-width="2" fill="none" stroke-linecap="round"/>`+leaf(50,34,-30);
+    case 'cloud': return `<path d="M24 88C10 88 7 70 19 65 15 51 30 43 39 49 43 35 63 33 67 48 79 42 93 54 84 67 95 71 92 88 78 88z" ${f} stroke="url(#${g})" stroke-width="2" stroke-linejoin="round"/>`;
+    case 'drop':  return `<path d="M50 20C58 36 82 51 82 68 82 83 68 91 50 91S18 83 18 68C18 51 42 36 50 20z" ${f}/>`;
+    case 'mound': return `<path d="M17 88C12 70 20 57 29 51L32 36 41 45 50 27 59 45 68 36 71 51C80 57 88 70 83 88Q50 94 17 88z" ${f} stroke="url(#${g})" stroke-width="7" stroke-linejoin="round"/>`;
+  }
+}
+
+function blob(moodKey, opts={}){
+  const m = MOODS[moodKey]; const g = 'g'+(++gid);
+  return `<svg viewBox="0 0 100 100" aria-hidden="true">
+    <defs>
+      <radialGradient id="${g}" cx="36%" cy="32%" r="78%"><stop offset="0" stop-color="${m.c.l}"/><stop offset=".55" stop-color="${m.c.b}"/><stop offset="1" stop-color="${m.c.d}"/></radialGradient>
+      <linearGradient id="lf${g}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#C6DFC9" stop-opacity=".9"/><stop offset="1" stop-color="#7FA48A" stop-opacity=".2"/></linearGradient>
+    </defs>
+    ${opts.noShadow?'':'<ellipse cx="50" cy="95" rx="27" ry="3.6" fill="#8a5a46" opacity=".16"/>'}
+    ${body(m.shape,g)}
+    <ellipse cx="36" cy="47" rx="9" ry="5" fill="#fff" opacity=".5" transform="rotate(-28 36 47)"/>
+    <circle cx="27" cy="57" r="2" fill="#fff" opacity=".55"/>
+    ${opts.noFace?'':face(m.face)}
+  </svg>`;
+}
+
+const sparkle = (x,y,s,c,d)=>`<path class="twinkle" style="animation-delay:${d}s" transform="translate(${x} ${y}) scale(${s})" d="M0-8C1-2 2-1 8 0 2 1 1 2 0 8-1 2-2 1-8 0-2-1-1-2 0-8z" fill="${c}"/>`;
+
+function mascotSVG(){
+  return `<svg viewBox="0 0 340 250" aria-label="a soft white cat">
+  <defs>
+    <radialGradient id="cat" cx="38%" cy="30%" r="80%"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".6" stop-color="#FBF3EC"/><stop offset="1" stop-color="#E8D4C6"/></radialGradient>
+    <radialGradient id="pot" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#FCD9BE"/><stop offset="1" stop-color="#E99D78"/></radialGradient>
+    <radialGradient id="pot2" cx="35%" cy="30%" r="80%"><stop offset="0" stop-color="#FFE7B8"/><stop offset="1" stop-color="#EDB36C"/></radialGradient>
+    <radialGradient id="cl" cx="40%" cy="30%" r="80%"><stop offset="0" stop-color="#FFF3EA"/><stop offset="1" stop-color="#F6C9AE"/></radialGradient>
+    <linearGradient id="lv" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#B8D6BE"/><stop offset="1" stop-color="#7EA58A"/></linearGradient>
+  </defs>
+  <g class="bob" style="animation-duration:6s"><path d="M244 52c-10 0-12-12-3-15-1-10 11-15 17-9 4-9 18-8 20 2 9-2 15 8 9 15 7 3 5 12-3 12z" fill="url(#cl)"/></g>
+  ${sparkle(206,38,.9,'#fff',0)}${sparkle(120,30,.6,'#fff',1)}${sparkle(300,100,.55,'#FFF4E3',.6)}${sparkle(40,70,.7,'#fff',1.6)}${sparkle(160,22,.4,'#fff',2.2)}
+  <ellipse cx="170" cy="226" rx="140" ry="12" fill="#B9715A" opacity=".18"/>
+  <!-- left plant -->
+  <g transform="translate(40 120)">
+    <path d="M30 60C22 40 4 30 0 8 18 16 30 34 33 58z" fill="url(#lv)"/>
+    <path d="M36 60C34 34 44 14 60 0 62 24 48 44 40 60z" fill="url(#lv)"/>
+    <path d="M32 62C20 50 6 52-6 40 10 36 26 44 34 60z" fill="#A6C9AF"/>
+    <path d="M38 62C50 44 66 42 76 28 74 46 58 58 42 64z" fill="#9BBFA4"/>
+    <path d="M10 62h56l-7 40q-1 6-7 6H24q-6 0-7-6z" fill="url(#pot)"/>
+    <rect x="6" y="56" width="64" height="12" rx="6" fill="#F4B993"/>
+  </g>
+  <!-- right succulent -->
+  <g transform="translate(250 150)">
+    <path d="M30 34C22 20 26 6 30 0 34 6 38 20 30 34z" fill="url(#lv)"/>
+    <path d="M30 36C16 28 10 16 10 8 20 12 28 24 30 36z" fill="#A6C9AF"/>
+    <path d="M30 36C44 28 50 16 50 8 40 12 32 24 30 36z" fill="#A6C9AF"/>
+    <path d="M30 38C14 38 4 30 0 24 12 22 24 28 30 38z" fill="#93B79D"/>
+    <path d="M30 38C46 38 56 30 60 24 48 22 36 28 30 38z" fill="#93B79D"/>
+    <path d="M6 38h48l-5 30q-1 6-7 6H18q-6 0-7-6z" fill="url(#pot2)"/>
+    <rect x="3" y="34" width="54" height="10" rx="5" fill="#F7CC86"/>
+  </g>
+  <!-- cat -->
+  <g class="bob">
+    <path d="M104 214C94 170 102 126 124 110L126 76Q128 70 133 74L154 96C164 92 180 92 190 96L211 74Q216 70 218 76L220 110C242 126 250 170 240 214Q172 232 104 214z" fill="url(#cat)" stroke="url(#cat)" stroke-width="6" stroke-linejoin="round"/>
+    <path d="M133 86l14 13-12 6z" fill="#F7C1B4" opacity=".8"/>
+    <path d="M211 86l-14 13 12 6z" fill="#F7C1B4" opacity=".8"/>
+    <ellipse cx="146" cy="124" rx="18" ry="10" fill="#fff" opacity=".7" transform="rotate(-25 146 124)"/>
+    <ellipse cx="141" cy="168" rx="11" ry="7" fill="#F3A07D" opacity=".75"/>
+    <ellipse cx="203" cy="168" rx="11" ry="7" fill="#F3A07D" opacity=".75"/>
+    <ellipse cx="154" cy="152" rx="3.6" ry="4.6" fill="#5B3D33"/>
+    <ellipse cx="190" cy="152" rx="3.6" ry="4.6" fill="#5B3D33"/>
+    <circle cx="155.3" cy="150.4" r="1.2" fill="#fff"/><circle cx="191.3" cy="150.4" r="1.2" fill="#fff"/>
+    <path d="M168 160l4 3 4-3" stroke="#5B3D33" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M172 163q-3 5-7 3M172 163q3 5 7 3" stroke="#5B3D33" stroke-width="2" fill="none" stroke-linecap="round"/>
+    <ellipse cx="146" cy="214" rx="15" ry="8" fill="#F7EDE5"/>
+    <ellipse cx="198" cy="214" rx="15" ry="8" fill="#F7EDE5"/>
+    <circle cx="174" cy="196" r="6" fill="#F3A07D" opacity=".6"/>
+  </g>
+</svg>`;
+}
+
+/* ---------- state ---------- */
+const TAGS = ['sleep','work','school','friends','family','love','health','food','movement','weather','alone time','creativity'];
+const INT_WORDS = ['','barely','a little','somewhat','quite a bit','so much'];
+const QUOTES = [
+  "you don't have to feel okay to be okay.",
+  "small steps still move you forward.",
+  "your feelings are visitors. let them come, let them go.",
+  "rest is productive too.",
+  "you are allowed to take up space.",
+  "be as gentle with yourself as you'd be with a friend.",
+  "some days are just for getting through, and that's enough.",
+  "noticing how you feel is already an act of care.",
+  "you've survived every hard day so far.",
+  "it's okay to bloom slowly.",
+  "drink some water. unclench your jaw. you're doing fine.",
+  "what you feel today isn't forever."
+];
+let entries = [];
+let sel = {mood:null, intensity:3, tags:new Set()};
+let calMonth = new Date(); calMonth.setDate(1);
+let selectedDay = null;
+let backend = 'local', entriesRef = null, profileRef = null, userName = 'lovely';
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,'0');
+const dayKey = t => { const d = new Date(t); return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`; };
+const esc = s => String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function setStatus(t, ok){ const s=$('status'); s.textContent=t; s.classList.toggle('ok',!!ok); }
+function toast(html){ const t=$('toast'); t.innerHTML=html; t.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),2600); }
+
+/* ---------- storage ---------- */
+function localLoad(){ try{ return JSON.parse(localStorage.getItem('lm_entries')||'[]'); }catch(e){ return []; } }
+function localSave(){ try{ localStorage.setItem('lm_entries', JSON.stringify(entries)); }catch(e){} }
+
+async function initStore(){
+  let db=null, user=null, uid=null;
+  try{ if(window.claude && claude.use){ [db,user] = await Promise.all([claude.use('db'), claude.use('user')]); } }catch(e){}
+  try{ uid = user ? await user.id() : null; }catch(e){}
+  if(db && uid){
+    backend='cloud';
+    profileRef = db.doc(`data/users/${uid}/profile`);
+    entriesRef = profileRef.collection('entries');
+    setStatus('opening your garden…');
+    const timer = setTimeout(()=>setStatus('still reaching your saved moods…'),10000);
+    entriesRef.orderBy('ts','desc').limit(1000).onSnapshot(snap=>{
+      entries = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      if(!snap.metadata.fromCache){ clearTimeout(timer); setStatus('saved privately to your account ✓', true); }
+      renderAll();
+    }, err=>{ clearTimeout(timer); setStatus("couldn't load saved moods"); });
+    profileRef.get().then(s=>{ if(s.exists && s.data().name){ userName=s.data().name; $('name').textContent=userName; } }).catch(()=>{});
+  } else {
+    backend='local'; entries = localLoad().sort((a,b)=>b.ts-a.ts);
+    try{ const n=localStorage.getItem('lm_name'); if(n){ userName=n; $('name').textContent=n; } }catch(e){}
+    setStatus('saved on this device');
+    renderAll();
+  }
+}
+
+async function addEntry(e){
+  if(backend==='cloud'){
+    try{ await entriesRef.doc(e.id).set(e); }
+    catch(err){ toast('hmm, that didn\'t save. try again?'); return false; }
+  } else { entries.unshift(e); localSave(); renderAll(); }
+  return true;
+}
+async function removeEntry(id){
+  if(backend==='cloud'){ try{ await entriesRef.doc(id).delete(); }catch(e){ toast("couldn't remove that one"); } }
+  else { entries = entries.filter(x=>x.id!==id); localSave(); renderAll(); }
+}
+async function saveName(n){
+  userName = n;
+  if(backend==='cloud'){ try{ await profileRef.set({name:n}); }catch(e){} }
+  else { try{ localStorage.setItem('lm_name', n); }catch(e){} }
+}
+
+/* ---------- derived ---------- */
+function byDay(){ const m={}; for(const e of entries){ (m[dayKey(e.ts)] ||= []).push(e); } return m; }
+function dominant(list){
+  const c={}; list.forEach(e=>c[e.mood]=(c[e.mood]||0)+(e.intensity||3));
+  return Object.keys(c).sort((a,b)=>c[b]-c[a] || 0)[0];
+}
+function streak(days){
+  let d=new Date(); let n=0;
+  if(!days[dayKey(d)]) d.setDate(d.getDate()-1);
+  while(days[dayKey(d)]){ n++; d.setDate(d.getDate()-1); }
+  return n;
+}
+
+/* ---------- render ---------- */
+function renderAll(){ renderStats(); renderCal(); renderChart(); renderList(); }
+
+function renderStats(){
+  const days = byDay();
+  $('m-streak').textContent = streak(days);
+  $('m-total').textContent = entries.length;
+  const weekAgo = Date.now()-7*864e5;
+  const wk = entries.filter(e=>e.ts>=weekAgo);
+  $('s-week').textContent = wk.length;
+  $('s-bright').textContent = wk.length ? (wk.reduce((a,e)=>a+MOODS[e.mood].score,0)/wk.length).toFixed(1)+' / 5' : '–';
+  const now=new Date(); const mo = entries.filter(e=>{const d=new Date(e.ts);return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();});
+  const tm = $('top-mood');
+  if(mo.length){ const k=dominant(mo); tm.innerHTML = blob(k)+`<div><p>you've felt mostly <b>${MOODS[k].label}</b> this month</p><small>${mo.length} check-in${mo.length>1?'s':''} in ${now.toLocaleString('en',{month:'long'}).toLowerCase()}</small></div>`; }
+  else tm.innerHTML = blob('calm')+`<div><p>your month is a blank page</p><small>check in to see your most-felt mood</small></div>`;
+}
+
+function renderCal(){
+  const y=calMonth.getFullYear(), m=calMonth.getMonth();
+  $('cal-title').textContent = calMonth.toLocaleString('en',{month:'long',year:'numeric'}).toLowerCase();
+  const days = byDay(); const todayK = dayKey(Date.now());
+  let h = ['s','m','t','w','t','f','s'].map(d=>`<div class="dow">${d}</div>`).join('');
+  const first = new Date(y,m,1).getDay(), n = new Date(y,m+1,0).getDate();
+  for(let i=0;i<first;i++) h+='<div class="day empty"></div>';
+  for(let d=1; d<=n; d++){
+    const k = `${y}-${pad(m+1)}-${pad(d)}`; const list = days[k];
+    const cls = ['day', list?'has':'', k===todayK?'today':'', k===selectedDay?'sel':''].join(' ');
+    h += `<button class="${cls}" data-day="${k}" aria-label="${k}${list?', '+list.length+' check-ins':''}"><span class="n">${d}</span>${list?blob(dominant(list),{noShadow:true}):''}</button>`;
+  }
+  $('cal').innerHTML = h;
+}
+
+function renderChart(){
+  const days = byDay(); const W=340,H=170,bw=30,gap=(W-20-7*bw)/6, base=140;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="brightness over the last 7 days">`;
+  for(let i=0;i<4;i++){ const yy = base - i*(110/4) - 110/4; s+=`<line x1="10" x2="${W-10}" y1="${yy}" y2="${yy}" stroke="#E7D6CB" stroke-dasharray="3 5"/>`; }
+  for(let i=6;i>=0;i--){
+    const d = new Date(); d.setDate(d.getDate()-i); const k = dayKey(d); const list = days[k];
+    const x = 10 + (6-i)*(bw+gap);
+    const lab = d.toLocaleString('en',{weekday:'short'}).slice(0,2).toLowerCase();
+    if(list){
+      const avg = list.reduce((a,e)=>a+MOODS[e.mood].score,0)/list.length;
+      const h = Math.max(24, avg/5*110); const c = MOODS[dominant(list)].c;
+      s += `<defs><linearGradient id="bar${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.b}"/><stop offset="1" stop-color="${c.d}"/></linearGradient></defs>`;
+      s += `<rect x="${x}" y="${base-h}" width="${bw}" height="${h}" rx="15" fill="url(#bar${i})"/><ellipse cx="${x+10}" cy="${base-h+11}" rx="4" ry="6" fill="#fff" opacity=".5"/>`;
+    } else {
+      s += `<rect x="${x+9}" y="${base-12}" width="12" height="12" rx="6" fill="none" stroke="#D9C2B5" stroke-width="2" stroke-dasharray="3 3"/>`;
+    }
+    s += `<text x="${x+bw/2}" y="${base+20}" text-anchor="middle" font-family="Nunito" font-weight="800" font-size="12" fill="${i===0?'#6B4A3F':'#A17F72'}">${i===0?'today':lab}</text>`;
+  }
+  $('chart').innerHTML = s+'</svg>';
+}
+
+function renderList(){
+  let list = selectedDay ? entries.filter(e=>dayKey(e.ts)===selectedDay) : entries.slice(0,40);
+  $('show-all').style.display = selectedDay ? '' : 'none';
+  $('j-sub').textContent = selectedDay
+    ? new Date(selectedDay+'T12:00').toLocaleDateString('en',{weekday:'long',month:'long',day:'numeric'}).toLowerCase()
+    : 'your most recent check-ins.';
+  if(!list.length){
+    $('list').innerHTML = `<div class="empty-state">${blob(selectedDay?'tired':'calm')}${selectedDay?'nothing planted on this day.':'no feelings logged yet — your first one is waiting ✿'}</div>`;
+    return;
+  }
+  $('list').innerHTML = list.map(e=>{
+    const m = MOODS[e.mood]; const d = new Date(e.ts);
+    const when = (selectedDay?'':d.toLocaleDateString('en',{month:'short',day:'numeric'}).toLowerCase()+' · ')+d.toLocaleTimeString('en',{hour:'numeric',minute:'2-digit'}).toLowerCase();
+    const dots = [1,2,3,4,5].map(i=>`<i class="${i<=(e.intensity||3)?'f':''}"></i>`).join('');
+    return `<div class="row" style="background:linear-gradient(100deg,${m.c.l} 0%,${m.c.b} 100%)">
+      <div class="ic">${blob(e.mood,{noShadow:true})}</div>
+      <div class="body">
+        <div class="t"><b>${m.label}</b><span class="dots" title="intensity ${e.intensity}/5">${dots}</span><small>${when}</small></div>
+        ${e.note?`<p class="note">${esc(e.note)}</p>`:''}
+        ${e.grateful?`<p class="grat">✿ ${esc(e.grateful)}</p>`:''}
+        ${e.tags&&e.tags.length?`<div class="mtags">${e.tags.map(t=>`<span>${esc(t)}</span>`).join('')}</div>`:''}
+      </div>
+      <button class="del" data-del="${esc(e.id)}" aria-label="remove entry">✕</button>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- check-in ui ---------- */
+$('moods').innerHTML = ORDER.map(k=>`<button class="mood" data-mood="${k}" aria-pressed="false">${blob(k)}<span>${MOODS[k].label}</span></button>`).join('');
+$('tags').innerHTML = TAGS.map(t=>`<button class="tag" data-tag="${t}">${t}</button>`).join('');
+$('moods').addEventListener('click', e=>{
+  const b = e.target.closest('.mood'); if(!b) return;
+  sel.mood = b.dataset.mood;
+  document.querySelectorAll('.mood').forEach(x=>{ x.classList.toggle('on', x===b); x.setAttribute('aria-pressed', x===b); });
+  $('save').disabled=false; $('save').textContent = `save “${MOODS[sel.mood].label}” to my garden`;
+});
+$('tags').addEventListener('click', e=>{
+  const b=e.target.closest('.tag'); if(!b) return;
+  const t=b.dataset.tag; sel.tags.has(t)?sel.tags.delete(t):sel.tags.add(t); b.classList.toggle('on');
+});
+$('intensity').addEventListener('input', e=>{ sel.intensity=+e.target.value; $('int-word').textContent='· '+INT_WORDS[sel.intensity]; });
+$('save').addEventListener('click', async ()=>{
+  if(!sel.mood) return;
+  const btn=$('save'); btn.disabled=true; btn.textContent='planting…';
+  const e = { id:'e'+Date.now()+Math.random().toString(36).slice(2,6), ts:Date.now(), mood:sel.mood, intensity:sel.intensity,
+    tags:[...sel.tags], note:$('note').value.trim().slice(0,4000), grateful:$('grat').value.trim().slice(0,500) };
+  const ok = await addEntry(e);
+  if(ok){
+    toast(blob(e.mood,{noShadow:true})+' planted in your garden');
+    sel={mood:null,intensity:3,tags:new Set()};
+    document.querySelectorAll('.mood,.tag').forEach(x=>{x.classList.remove('on');x.setAttribute('aria-pressed','false');});
+    $('intensity').value=3; $('int-word').textContent='· somewhat'; $('note').value=''; $('grat').value='';
+    btn.textContent='pick a feeling first';
+    calMonth=new Date(); calMonth.setDate(1); selectedDay=null; renderAll();
+  } else { btn.disabled=false; btn.textContent=`save “${MOODS[sel.mood].label}” to my garden`; }
+});
+
+/* calendar + journal interactions */
+$('prev').onclick=()=>{ calMonth.setMonth(calMonth.getMonth()-1); renderCal(); };
+$('next').onclick=()=>{ calMonth.setMonth(calMonth.getMonth()+1); renderCal(); };
+$('cal').addEventListener('click', e=>{
+  const b=e.target.closest('[data-day]'); if(!b) return;
+  selectedDay = selectedDay===b.dataset.day ? null : b.dataset.day;
+  renderCal(); renderList();
+  if(selectedDay && window.innerWidth<960) $('journal').scrollIntoView({behavior:'smooth'});
+});
+$('show-all').onclick=()=>{ selectedDay=null; renderCal(); renderList(); };
+$('list').addEventListener('click', e=>{
+  const b=e.target.closest('[data-del]'); if(!b) return;
+  if(!b.classList.contains('ask')){ b.classList.add('ask'); b.textContent='remove?'; setTimeout(()=>{ if(b.isConnected){b.classList.remove('ask'); b.textContent='✕';} },3000); return; }
+  removeEntry(b.dataset.del);
+});
+
+/* name */
+$('name').addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); e.target.blur(); } });
+$('name').addEventListener('blur', e=>{
+  const n = e.target.textContent.trim().slice(0,30) || 'lovely';
+  e.target.textContent = n; if(n!==userName) saveName(n);
+});
+
+/* breathe */
+let bTimer=null;
+$('bubble').innerHTML = blob('calm');
+$('breath-btn').onclick=()=>{
+  const bub=$('bubble'), txt=$('breath-txt'), btn=$('breath-btn');
+  if(bTimer){ clearInterval(bTimer); bTimer=null; bub.classList.remove('in'); txt.textContent="whenever you're ready"; btn.textContent='start'; return; }
+  btn.textContent='stop';
+  const step=()=>{ const inn=!bub.classList.contains('in'); bub.classList.toggle('in',inn); txt.textContent = inn?'breathe in…':'and out…'; };
+  step(); bTimer=setInterval(step,4000);
+};
+
+/* kindness */
+let qi = Math.floor(Math.random()*QUOTES.length);
+const showQuote=()=>{ $('quote').textContent = QUOTES[qi%QUOTES.length]; };
+$('new-quote').onclick=()=>{ qi++; showQuote(); };
+showQuote();
+$('kind-deco').innerHTML = blob('joyful');
+
+/* header art */
+$('today').textContent = new Date().toLocaleDateString('en',{weekday:'long',month:'long',day:'numeric'});
+$('mascot').innerHTML = mascotSVG();
+$('avatar').innerHTML = `<div style="width:34px">${blob('loved',{noShadow:true})}</div>`;
+$('brand').insertAdjacentHTML('afterbegin', blob('tired',{noShadow:true}));
+
+/* floating background friends */
+const fl = [
+  ['loved', '2%','14%',84,0],['joyful','93%','8%',80,1.2],['tired','91%','46%',96,.6],
+  ['calm','1.5%','58%',74,2],['sad','94%','80%',70,1.6],['anxious','3%','88%',64,.3]
+];
+$('floaties').innerHTML = fl.map(([k,l,t,w,d])=>`<div class="floaty bob" style="left:${l};top:${t};width:${w}px;animation-delay:${d}s;animation-duration:${5+d}s">${blob(k)}</div>`).join('');
+
+renderAll();
+initStore();
+</script>
+</body>
+</html>
