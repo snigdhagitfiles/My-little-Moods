@@ -118,85 +118,117 @@ async function plant(name, seq){
 
 
 /* ---------- the garden gate ---------- */
-const MAX_KEY = 8, MIN_KEY = 4;
-let gate = {mode:'open', stage:1, seq:[], first:null, busy:false, pendingImport:null};
+const KEY_LEN = 4;   // a mood key is exactly 4 emotions
+let gate = {mode:'open', stage:1, seq:[], first:null, busy:false};
+
+// little "step 1 · step 2" pills and a friendly green note, added above the dots
+$('key-dots').insertAdjacentHTML('beforebegin', '<div class="g-steps" id="g-steps"></div><p class="g-good" id="g-good"></p>');
+(function(){ const st=document.createElement('style'); st.textContent=`
+  .g-steps{display:flex;justify-content:center;gap:8px;margin:0 0 10px}
+  .g-steps span{font-size:12px;font-weight:800;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.55);color:var(--ink-soft);transition:.25s}
+  .g-steps span.on{background:linear-gradient(135deg,#F8C9A6,#EFAAA0);color:#fff;box-shadow:0 6px 12px -8px rgba(200,100,75,.8)}
+  .g-steps span.done{background:#CFEADC;color:#4f7d62}
+  .g-good{min-height:0;margin:0 0 8px;font-weight:800;font-size:14px;color:#4f7d62}
+  .g-good:empty{display:none}
+  .key-dots i{width:18px;height:18px}`; document.head.appendChild(st); })();
 
 function showGate(mode){
-  gate = {mode, stage:1, seq:[], first:null, busy:false, pendingImport:null};
+  gate = {mode, stage:1, seq:[], first:null, busy:false};
   $('gate').hidden = false; $('local-tools').hidden = true;
-  $('g-msg').textContent = '';
+  $('g-msg').textContent = ''; $('g-good').textContent = '';
+  renderGate();
   if(!(window.crypto && crypto.subtle)){
-    $('g-msg').textContent = "this browser won't let the garden lock itself here. try opening the file in chrome, edge or firefox.";
+    $('g-msg').textContent = "this browser won't let the garden lock itself here. open your github pages link instead, or use chrome, edge or firefox.";
     $('g-go').disabled = true;
   }
-  renderGate();
   setTimeout(()=>$('g-name').focus(), 50);
 }
 function renderGate(){
-  const n = Math.max(MIN_KEY, Math.min(MAX_KEY, gate.seq.length + (gate.seq.length>=MIN_KEY && gate.seq.length<MAX_KEY ? 1 : 0)));
-  $('key-dots').innerHTML = Array.from({length:n},(_,i)=>`<i class="${i<gate.seq.length?'f':''}"></i>`).join('');
-  $('key-dots').setAttribute('aria-label', `${gate.seq.length} friends tapped`);
+  $('key-dots').innerHTML = Array.from({length:KEY_LEN},(_,i)=>`<i class="${i<gate.seq.length?'f':''}"></i>`).join('');
+  $('key-dots').setAttribute('aria-label', `${gate.seq.length} of ${KEY_LEN} emotions tapped`);
   const nw = gate.mode==='new';
-  $('gate-title').textContent = nw ? (gate.stage===1 ? 'plant your own garden' : 'one more time') : 'welcome back to your garden';
+  $('g-steps').innerHTML = nw
+    ? `<span class="${gate.stage===1?'on':'done'}">${gate.stage===1?'1':'✓'} choose your key</span><span class="${gate.stage===2?'on':''}">2 repeat it</span>`
+    : '';
+  $('gate-title').textContent = nw ? (gate.stage===1 ? 'make your garden' : 'now repeat your key') : 'welcome back to your garden';
   $('gate-sub').textContent = nw
-    ? (gate.stage===1 ? 'name your garden, then tap 4–8 mood friends in a secret order. that order is your key.' : 'tap your mood key again so we know you remember it.')
-    : "type your garden's name, then tap your secret mood key.";
-  $('g-go').textContent = gate.busy ? 'unlocking…' : nw ? (gate.stage===1 ? 'next: repeat my key' : 'plant my garden ✿') : 'open my garden';
+    ? (gate.stage===1 ? 'name your garden, then tap 4 emotions in a secret order. that order is your password.' : 'tap the same 4 emotions, in the same order.')
+    : "type your garden's name, then tap your 4 secret emotions.";
+  $('g-go').textContent = gate.busy ? (nw ? 'creating your garden…' : 'unlocking…') : nw ? (gate.stage===1 ? 'next: repeat my key' : 'create my garden ✿') : 'open my garden';
   $('g-go').disabled = gate.busy || !(window.crypto && crypto.subtle);
-  $('g-name').disabled = nw && gate.stage===2;
-  $('g-switch').textContent = nw ? 'already have a garden? open it' : 'new here? plant a new garden';
+  $('g-name').disabled = gate.busy || (nw && gate.stage===2);
+  $('g-switch').textContent = nw ? 'already have a garden? open it' : 'new here? make a garden';
   $('g-note').textContent = nw
-    ? "your moods are locked with this key and kept only in this browser. there's no reset, so pick an order you'll remember (longer is safer)."
+    ? "your moods are locked with this key and kept only in this browser. there's no reset, so pick an order you'll remember."
     : 'forgot your key? there is no way back in, which is what keeps your feelings private.';
 }
 function gateError(msg){
+  $('g-good').textContent = '';
   $('g-msg').textContent = msg;
   const c = $('gate-card'); c.classList.remove('shake'); void c.offsetWidth; c.classList.add('shake');
 }
 $('keypad').innerHTML = ORDER.map(k=>`<button type="button" data-k="${k}" aria-label="${MOODS[k].label}">${blob(k,{noShadow:true})}</button>`).join('');
 $('gate-art').innerHTML = mascotSVG();
 $('keypad').addEventListener('click', e=>{
-  const b = e.target.closest('[data-k]'); if(!b || gate.busy) return;
-  if(gate.seq.length >= MAX_KEY){ $('g-msg').textContent = `keys can be up to ${MAX_KEY} friends long`; return; }
+  const b = e.target.closest('[data-k]'); if(!b || gate.busy || gate.seq.length >= KEY_LEN) return;
   gate.seq.push(b.dataset.k); $('g-msg').textContent='';
   b.classList.add('pop'); setTimeout(()=>b.classList.remove('pop'),150);
   renderGate();
+  // the 4th tap moves things along by itself (as long as there's a name)
+  if(gate.seq.length === KEY_LEN && $('g-name').value.trim()) setTimeout(submitGate, 280);
 });
-$('g-undo').onclick = ()=>{ gate.seq.pop(); renderGate(); };
-$('g-clear').onclick = ()=>{ gate.seq=[]; if(gate.mode==='new'){ gate.stage=1; gate.first=null; } $('g-msg').textContent=''; renderGate(); };
-$('g-switch').onclick = ()=>{ showGate(gate.mode==='new' ? 'open' : 'new'); };
+$('g-undo').onclick = ()=>{ if(gate.busy) return; gate.seq.pop(); renderGate(); };
+$('g-clear').onclick = ()=>{ if(gate.busy) return; gate.seq=[]; gate.stage=1; gate.first=null; $('g-msg').textContent=''; $('g-good').textContent=''; renderGate(); };
+$('g-switch').onclick = ()=>{ const n=$('g-name').value; showGate(gate.mode==='new' ? 'open' : 'new'); $('g-name').value=n; };
+$('gate-card').addEventListener('submit', ev=>{ ev.preventDefault(); submitGate(); });
 
-$('gate-card').addEventListener('submit', async ev=>{
-  ev.preventDefault(); if(gate.busy) return;
+async function submitGate(){
+  if(gate.busy) return;
   const name = $('g-name').value;
   if(!name.trim()) return gateError('give your garden a name first');
-  if(gate.seq.length < MIN_KEY) return gateError(`your key needs at least ${MIN_KEY} mood friends`);
-  const id = await gardenId(name); const rec = readVault(id);
+  if(gate.seq.length < KEY_LEN) return gateError(`tap ${KEY_LEN - gate.seq.length} more emotion${KEY_LEN-gate.seq.length>1?'s':''}`);
+  try{
+    const id = await gardenId(name); const rec = readVault(id);
 
-  if(gate.mode==='open'){
-    if(!rec){ gateError(''); $('g-msg').innerHTML = `no garden called “${esc(name.trim())}” on this computer. <button type="button" id="g-to-new">plant it?</button>`; $('g-to-new').onclick=()=>{ const n=name; showGate('new'); $('g-name').value=n; }; return; }
-    gate.busy = true; renderGate();
-    try{
-      const data = await unlock(name, gate.seq, rec);
-      entries = (data.entries||[]).sort((a,b)=>b.ts-a.ts); userName = data.name || name.trim();
-      enterGarden(false);
-    }catch(err){
-      gate.busy=false; gate.seq=[]; renderGate(); gateError("hmm, that key doesn't open this garden");
+    if(gate.mode==='open'){
+      if(!rec){
+        gateError(''); $('g-msg').innerHTML = `no garden called “${esc(name.trim())}” in this browser yet. <button type="button" id="g-to-new">make it?</button>`;
+        $('g-to-new').onclick=()=>{ showGate('new'); $('g-name').value=name; };
+        gate.seq=[]; renderGate(); return;
+      }
+      gate.busy = true; renderGate();
+      try{
+        const data = await unlock(name, gate.seq, rec);
+        entries = (data.entries||[]).sort((a,b)=>b.ts-a.ts); userName = data.name || name.trim();
+        gate.busy=false; enterGarden(false);
+      }catch(err){
+        gate.busy=false; gate.seq=[]; renderGate(); gateError("hmm, that key doesn't open this garden");
+      }
+      return;
     }
-    return;
+
+    // making a new garden — step 1: choose
+    if(gate.stage===1){
+      if(rec){ gate.seq=[]; renderGate(); return gateError('a garden with that name already lives here. open it instead, or pick another name'); }
+      gate.first = gate.seq.slice(); gate.seq=[]; gate.stage=2;
+      $('g-msg').textContent=''; renderGate();
+      $('g-good').textContent = '✓ got it! now tap the same 4 again';
+      return;
+    }
+    // step 2: repeat
+    if(gate.seq.join() !== gate.first.join()){
+      gate.stage=1; gate.first=null; gate.seq=[]; renderGate();
+      return gateError("those didn't match. let's choose your key again");
+    }
+    gate.busy = true; $('g-good').textContent=''; renderGate();
+    await plant(name, gate.seq);
+    gate.busy=false; enterGarden(true);
+  }catch(err){
+    console.error(err);
+    gate.busy=false; gate.seq=[]; renderGate();
+    gateError("something went wrong saving your garden here. is private browsing on? try a normal window.");
   }
-  // planting a new garden
-  if(gate.stage===1){
-    if(rec) return gateError('a garden with that name already lives here. open it instead, or choose another name');
-    gate.first = gate.seq.slice(); gate.seq=[]; gate.stage=2; $('g-msg').textContent=''; renderGate(); return;
-  }
-  if(gate.seq.join() !== gate.first.join()){
-    gate.stage=1; gate.first=null; gate.seq=[]; renderGate(); return gateError("those didn't match. let's set the key again");
-  }
-  gate.busy = true; renderGate();
-  try{ await plant(name, gate.seq); enterGarden(true); }
-  catch(err){ gate.busy=false; renderGate(); gateError("couldn't save here. your browser may be blocking storage"); }
-});
+}
 
 function enterGarden(isNew){
   $('gate').hidden = true; $('local-tools').hidden = false;
