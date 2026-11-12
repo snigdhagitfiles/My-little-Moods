@@ -35,6 +35,12 @@
   nav{display:flex;gap:8px;flex-wrap:wrap;background:rgba(255,247,238,.55);padding:6px;border-radius:999px;box-shadow:var(--inset),0 10px 24px -16px rgba(133,84,64,.5);backdrop-filter:blur(6px)}
   nav a{padding:9px 16px;border-radius:999px;color:var(--ink);text-decoration:none;font-weight:700;font-size:14px;transition:.2s}
   nav a:hover{background:var(--cream);box-shadow:0 6px 14px -8px rgba(133,84,64,.5)}
+  @media (max-width:600px){
+    header{gap:10px}
+    nav{width:100%;flex-wrap:nowrap;overflow-x:auto;justify-content:space-between;scrollbar-width:none}
+    nav::-webkit-scrollbar{display:none}
+    nav a{padding:8px 12px;font-size:13px;white-space:nowrap}
+  }
   .status{font-size:12px;font-weight:700;color:var(--ink-soft);padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.45)}
   .status.ok{color:#5f8d72}
 
@@ -445,11 +451,11 @@ function toast(html){ const t=$('toast'); t.innerHTML=html; t.classList.add('sho
 
 /* ---------- storage ----------
    on claude.ai: your claude account keeps your moods.
-   on your computer: login.js (if it's beside this file) locks them with your mood key;
-   without it, they're kept unlocked in this browser. */
+   anywhere else (like github pages): account.js gives you a real login that syncs
+   across devices, with your moods encrypted by your 4-emotion key.
+   without account.js, moods are kept unlocked in this one browser. */
 function plainLoad(){ try{ const n=localStorage.getItem('lm_name'); if(n){ userName=n; $('name').textContent=n; } return JSON.parse(localStorage.getItem('lm_entries')||'[]').sort((a,b)=>b.ts-a.ts); }catch(e){ return []; } }
 function localSave(){
-  if(window.GardenGate) return GardenGate.save();
   try{ localStorage.setItem('lm_entries', JSON.stringify(entries)); localStorage.setItem('lm_name', userName); }catch(e){}
 }
 
@@ -471,7 +477,7 @@ async function initStore(){
     profileRef.get().then(s=>{ if(s.exists && s.data().name){ userName=s.data().name; $('name').textContent=userName; } }).catch(()=>{});
   } else {
     backend='local';
-    if(window.GardenGate){ GardenGate.start(); }          // login.js is next to this file
+    if(window.GardenGate){ GardenGate.start(); }          // account.js is loaded
     else { entries = plainLoad(); renderAll(); setStatus('saved on this device'); }
   }
 }
@@ -480,16 +486,19 @@ async function addEntry(e){
   if(backend==='cloud'){
     try{ await entriesRef.doc(e.id).set(e); }
     catch(err){ toast('hmm, that didn\'t save. try again?'); return false; }
-  } else { if(window.GardenGate && !GardenGate.isOpen()) return false; entries.unshift(e); renderAll(); await localSave(); }
+  } else if(window.GardenGate){ return GardenGate.add(e); }
+  else { entries.unshift(e); renderAll(); localSave(); }
   return true;
 }
 async function removeEntry(id){
   if(backend==='cloud'){ try{ await entriesRef.doc(id).delete(); }catch(e){ toast("couldn't remove that one"); } }
+  else if(window.GardenGate){ await GardenGate.remove(id); }
   else { entries = entries.filter(x=>x.id!==id); renderAll(); localSave(); }
 }
 async function saveName(n){
   userName = n;
   if(backend==='cloud'){ try{ await profileRef.set({name:n}); }catch(e){} }
+  else if(window.GardenGate){ GardenGate.saveName(n); }
   else localSave();
 }
 
@@ -671,8 +680,10 @@ const fl = [
 $('floaties').innerHTML = fl.map(([k,l,t,w,d])=>`<div class="floaty bob" style="left:${l};top:${t};width:${w}px;animation-delay:${d}s;animation-duration:${5+d}s">${blob(k)}</div>`).join('');
 
 renderAll();
-addEventListener('DOMContentLoaded', initStore);   // waits for login.js to load
+addEventListener('DOMContentLoaded', initStore);   // waits for account.js to load
 </script>
-<script src="login.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="config.js"></script>
+<script src="account.js"></script>
 </body>
 </html>
