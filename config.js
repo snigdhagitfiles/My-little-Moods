@@ -6,6 +6,6 @@
    and by your mood key. never put a "secret" or "service_role" key here. */
 
 window.LITTLE_MOODS_CONFIG = {
-  supabaseUrl: "https://YOUR-PROJECT-ID.supabase.co",
-  supabaseKey: "YOUR-PUBLISHABLE-KEY",   // starts with sb_publishable_ (older projects: the "anon public" key)
+  supabaseUrl: "sb_publishable_HoXKDzeFfhaXla6qO8KakQ_gfnbN5df",
+  supabaseKey: "sb_publishable_HoXKDzeFfhaXla6qO8KakQ_gfnbN5df",   // starts with sb_publishable_ (older projects: the "anon public" key)
 };
