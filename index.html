@@ -184,9 +184,17 @@
   /* breathe & kindness */
   .breathe{background:linear-gradient(175deg,#FFF3E6 0%,#FBE3CF 100%);text-align:center}
   .bubble-wrap{height:220px;display:grid;place-items:center}
-  .bubble{width:120px;height:120px;transition:transform 4s ease-in-out}
+  .bubble{width:120px;height:120px;transition:transform var(--breath,4s) ease-in-out}
   .bubble.in{transform:scale(1.55)}
+  .bubble.hold{animation:hold-glow 2s ease-in-out}
+  @keyframes hold-glow{50%{filter:brightness(1.06) drop-shadow(0 0 14px rgba(143,197,165,.7))}}
   .breath-txt{font-family:"Fredoka";font-size:20px;min-height:28px;margin-bottom:12px}
+  .breath-count{font-weight:800;font-size:13px;color:var(--ink-soft);min-height:18px;margin:-6px 0 12px}
+  .paces{display:inline-flex;gap:4px;padding:4px;border-radius:999px;background:rgba(255,255,255,.6);margin:12px 0 0;box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
+  .paces button{padding:6px 14px;border-radius:999px;font-weight:800;font-size:13px;color:var(--ink-soft);transition:background .2s}
+  .paces button:hover{background:rgba(255,255,255,.7)}
+  .paces button[aria-checked="true"]{background:#fff;color:var(--ink);box-shadow:0 6px 12px -8px rgba(107,74,63,.6)}
+  .paces button:disabled{cursor:default}
   .pill-btn{padding:12px 26px;border-radius:999px;font-weight:800;background:linear-gradient(180deg,#D8EEE2,#AFD9C3);box-shadow:var(--inset),0 10px 18px -10px rgba(70,120,95,.7)}
   .kind{background:linear-gradient(175deg,#FBE8C4 0%,#F6D4A6 100%)}
   .quote{font-family:"Fredoka";font-size:24px;line-height:1.3;margin:14px 0 18px;min-height:94px}
@@ -310,9 +318,15 @@
     <div class="span-4" style="display:flex;flex-direction:column;gap:22px">
       <section class="card breathe" id="breathe">
         <h2>breathe with me</h2>
-        <p class="sub" style="margin-bottom:0">four counts in, four counts out.</p>
+        <p class="sub" style="margin-bottom:0" id="breath-sub">4 seconds in, hold for 2, 4 seconds out.</p>
+        <div class="paces" id="paces" role="radiogroup" aria-label="breath length">
+          <button role="radio" data-pace="4">4 sec</button>
+          <button role="radio" data-pace="6">6 sec</button>
+          <button role="radio" data-pace="10">10 sec</button>
+        </div>
         <div class="bubble-wrap"><div class="bubble" id="bubble"></div></div>
-        <div class="breath-txt" id="breath-txt">whenever you're ready</div>
+        <div class="breath-txt" id="breath-txt" aria-live="polite">whenever you're ready</div>
+        <div class="breath-count" id="breath-count" aria-hidden="true"></div>
         <button class="pill-btn" id="breath-btn">start</button>
       </section>
       <section class="card kind">
@@ -749,15 +763,61 @@ $('name').addEventListener('blur', e=>{
 });
 
 /* breathe */
-let bTimer=null;
+// one round = breathe in (pace) → hold (2s) → breathe out (pace)
+const HOLD = 2;
+let pace = 4, breathing = false, bTimers = [];
+try{ pace = +localStorage.getItem('lm_breath_pace') || 4; }catch(e){}
+if(![4,6,10].includes(pace)) pace = 4;
 $('bubble').innerHTML = blob('calm');
-$('breath-btn').onclick=()=>{
-  const bub=$('bubble'), txt=$('breath-txt'), btn=$('breath-btn');
-  if(bTimer){ clearInterval(bTimer); bTimer=null; bub.classList.remove('in'); txt.textContent="whenever you're ready"; btn.textContent='start'; return; }
-  btn.textContent='stop';
-  const step=()=>{ const inn=!bub.classList.contains('in'); bub.classList.toggle('in',inn); txt.textContent = inn?'breathe in…':'and out…'; };
-  step(); bTimer=setInterval(step,4000);
+
+function setPace(p){
+  pace = p;
+  document.querySelectorAll('#paces [data-pace]').forEach(b=>{
+    const on = +b.dataset.pace===p; b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1;
+  });
+  $('breath-sub').textContent = `${p} seconds in, hold for ${HOLD}, ${p} seconds out.`;
+  try{ localStorage.setItem('lm_breath_pace', p); }catch(e){}
+}
+function clearBreath(){ bTimers.forEach(clearTimeout); bTimers = []; }
+function later(fn, s){ bTimers.push(setTimeout(fn, s*1000)); }
+function countDown(label, secs){
+  $('breath-txt').textContent = label;
+  for(let i=0;i<secs;i++) later(()=>{ $('breath-count').textContent = secs - i; }, i);
+}
+function breathRound(){
+  const bub = $('bubble');
+  bub.style.setProperty('--breath', pace+'s');
+  bub.classList.remove('hold');
+  bub.classList.add('in');
+  countDown('breathe in…', pace);
+  later(()=>{ bub.classList.add('hold'); countDown('hold…', HOLD); }, pace);
+  later(()=>{ bub.classList.remove('hold'); bub.classList.remove('in'); countDown('and out…', pace); }, pace + HOLD);
+  later(breathRound, pace*2 + HOLD);
+}
+function stopBreathing(){
+  breathing = false; clearBreath();
+  const bub = $('bubble'); bub.style.setProperty('--breath', '1.2s'); bub.classList.remove('in','hold');
+  $('breath-txt').textContent = "whenever you're ready"; $('breath-count').textContent = '';
+  $('breath-btn').textContent = 'start';
+}
+$('breath-btn').onclick = ()=>{
+  if(breathing) return stopBreathing();
+  breathing = true; $('breath-btn').textContent = 'stop';
+  breathRound();
 };
+$('paces').addEventListener('click', e=>{
+  const b = e.target.closest('[data-pace]'); if(!b) return;
+  setPace(+b.dataset.pace);
+  if(breathing){ clearBreath(); const bub=$('bubble'); bub.style.setProperty('--breath','1s'); bub.classList.remove('in','hold'); $('breath-txt').textContent='new pace…'; $('breath-count').textContent=''; later(breathRound, 1.2); }
+});
+$('paces').addEventListener('keydown', e=>{
+  if(e.key!=='ArrowRight' && e.key!=='ArrowLeft') return;
+  e.preventDefault();
+  const P=[4,6,10], i=(P.indexOf(pace) + (e.key==='ArrowRight'?1:-1) + P.length) % P.length;
+  document.querySelector(`#paces [data-pace="${P[i]}"]`).click();
+  document.querySelector(`#paces [data-pace="${P[i]}"]`).focus();
+});
+setPace(pace);
 
 /* kindness */
 let qi = Math.floor(Math.random()*QUOTES.length);
