@@ -121,6 +121,27 @@
   .day.sel{background:#fff;box-shadow:0 0 0 2px var(--sage-d),0 8px 16px -10px rgba(107,74,63,.6)}
   .day.empty{background:transparent;pointer-events:none}
 
+  /* speech-bubble peek at a day */
+  .day-pop{position:fixed;left:0;top:0;z-index:15;width:max-content;max-width:min(300px,calc(100vw - 20px));background:#FFF9F3;border-radius:24px;padding:12px 14px 12px;
+    box-shadow:0 18px 36px -16px rgba(133,84,64,.55),0 4px 10px -6px rgba(133,84,64,.3),inset 0 1px 0 #fff;
+    opacity:0;pointer-events:none;transform:translate(-50%,calc(-100% + 8px)) scale(.94);transform-origin:var(--tail,50%) 100%;
+    transition:opacity .18s ease,transform .25s cubic-bezier(.3,1.5,.5,1)}
+  .day-pop.show{opacity:1;transform:translate(-50%,-100%) scale(1)}
+  .day-pop.below{transform:translate(-50%,-8px) scale(.94);transform-origin:var(--tail,50%) 0}
+  .day-pop.below.show{transform:translate(-50%,0) scale(1)}
+  .day-pop.pinned.show{pointer-events:auto}
+  .day-pop::after{content:"";position:absolute;left:var(--tail,50%);bottom:-7px;width:16px;height:16px;background:#FFF9F3;border-radius:3px;transform:translateX(-50%) rotate(45deg);box-shadow:4px 4px 8px -4px rgba(133,84,64,.3)}
+  .day-pop.below::after{bottom:auto;top:-7px;box-shadow:-3px -3px 6px -4px rgba(133,84,64,.2)}
+  .dp-date{font-family:"Fredoka","Nunito",sans-serif;font-weight:500;font-size:15px;text-align:center;margin-bottom:8px;position:relative;z-index:1}
+  .dp-moods{display:flex;flex-wrap:wrap;justify-content:center;gap:6px 4px;position:relative;z-index:1}
+  .dp-m{display:flex;flex-direction:column;align-items:center;width:62px;padding:4px 2px;border-radius:16px}
+  .dp-b{width:40px;height:40px}
+  .dp-b svg{width:100%;height:100%}
+  .dp-m b{font-size:12px;font-weight:800;line-height:1.2}
+  .dp-m small{font-size:11px;font-weight:700;color:var(--ink-soft)}
+  .dp-empty{font-size:13px;font-weight:700;color:var(--ink-soft);text-align:center;padding:2px 6px 4px}
+  .dp-go{display:block;margin:8px auto 0;padding:7px 14px;border-radius:999px;font-weight:800;font-size:12px;background:linear-gradient(135deg,#F8C9A6,#EFAAA0);color:#fff;position:relative;z-index:1}
+
   /* insights */
   .insights{background:linear-gradient(175deg,#D2DDD3 0%,#BCCFC1 100%)}
   .stat-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
@@ -533,6 +554,7 @@ function renderStats(){
 }
 
 function renderCal(){
+  if(popDay) hidePop();   // the calendar is being redrawn, so the bubble would point at an old cell
   const y=calMonth.getFullYear(), m=calMonth.getMonth();
   $('cal-title').textContent = calMonth.toLocaleString('en',{month:'long',year:'numeric'}).toLowerCase();
   const days = byDay(); const todayK = dayKey(Date.now());
@@ -628,11 +650,64 @@ $('save').addEventListener('click', async ()=>{
 /* calendar + journal interactions */
 $('prev').onclick=()=>{ calMonth.setMonth(calMonth.getMonth()-1); renderCal(); };
 $('next').onclick=()=>{ calMonth.setMonth(calMonth.getMonth()+1); renderCal(); };
+/* ---- the speech-bubble peek: hover a day (or tap it on a phone) ---- */
+const pop = document.createElement('div');
+pop.className = 'day-pop'; pop.setAttribute('role','status'); pop.setAttribute('aria-live','polite');
+document.body.appendChild(pop);
+let popDay = null, popPinned = false, lastPointer = 'mouse';
+const clock = t => new Date(t).toLocaleTimeString('en',{hour:'numeric',minute:'2-digit'}).toLowerCase();
+
+function showPop(k, pinned){
+  const cell = $('cal').querySelector(`[data-day="${k}"]`);
+  if(!cell) return hidePop();
+  const list = entries.filter(e=>dayKey(e.ts)===k).sort((a,b)=>a.ts-b.ts);   // morning → night
+  const date = new Date(k+'T12:00').toLocaleDateString('en',{weekday:'long',month:'short',day:'numeric'}).toLowerCase();
+  pop.innerHTML = `<div class="dp-date">${date}</div>` + (list.length
+    ? `<div class="dp-moods">${list.map(e=>`<div class="dp-m"><div class="dp-b">${blob(e.mood,{noShadow:true})}</div><b>${MOODS[e.mood].label}</b><small>${clock(e.ts)}</small></div>`).join('')}</div>`
+    : `<div class="dp-empty">no feelings noticed this day</div>`)
+    + (pinned && list.length && window.innerWidth<960 ? `<button type="button" class="dp-go">read this day's notes ↓</button>` : '');
+  popDay = k; popPinned = !!pinned;
+  pop.classList.toggle('pinned', popPinned);
+  // place it above the day, or below if there's no room, and keep it on screen
+  pop.style.left = '50vw'; pop.style.top = '0px';   // measure at full width first
+  const r = cell.getBoundingClientRect(), w = pop.offsetWidth, h = pop.offsetHeight, m = 10;
+  const cx = r.left + r.width/2;
+  const left = Math.min(Math.max(cx, m + w/2), innerWidth - m - w/2);
+  const below = r.top - h - 16 < 0;
+  pop.classList.toggle('below', below);
+  pop.style.left = left + 'px';
+  pop.style.top = (below ? r.bottom + 12 : r.top - 12) + 'px';
+  pop.style.setProperty('--tail', Math.min(Math.max(cx - left + w/2, 22), w - 22) + 'px');
+  requestAnimationFrame(()=>pop.classList.add('show'));
+}
+function hidePop(){ pop.classList.remove('show'); popDay = null; popPinned = false; }
+
+addEventListener('pointerdown', e=>{
+  lastPointer = e.pointerType || 'mouse';
+  if(popPinned && !pop.contains(e.target) && !e.target.closest('#cal')) hidePop();
+}, true);
+$('cal').addEventListener('pointerover', e=>{
+  if(e.pointerType!=='mouse' || popPinned) return;
+  const b = e.target.closest('[data-day]');
+  if(b && b.classList.contains('has')){ if(popDay!==b.dataset.day) showPop(b.dataset.day); }
+});
+$('cal').addEventListener('pointerout', e=>{
+  if(e.pointerType!=='mouse' || popPinned) return;
+  const to = e.relatedTarget && e.relatedTarget.closest ? e.relatedTarget.closest('[data-day]') : null;
+  if(!to || !to.classList.contains('has')) hidePop();
+});
+addEventListener('scroll', ()=>{ if(popDay) hidePop(); }, {passive:true});
+addEventListener('resize', ()=>{ if(popDay) hidePop(); });
+pop.addEventListener('click', e=>{ if(e.target.closest('.dp-go')){ hidePop(); $('journal').scrollIntoView({behavior:'smooth'}); } });
+
 $('cal').addEventListener('click', e=>{
   const b=e.target.closest('[data-day]'); if(!b) return;
-  selectedDay = selectedDay===b.dataset.day ? null : b.dataset.day;
+  const k = b.dataset.day;
+  selectedDay = selectedDay===k ? null : k;
   renderCal(); renderList();
-  if(selectedDay && window.innerWidth<960) $('journal').scrollIntoView({behavior:'smooth'});
+  // on a phone/tablet the bubble stays put until you tap elsewhere; with a mouse it follows your hover
+  if(selectedDay) showPop(k, lastPointer!=='mouse');
+  else if(lastPointer==='mouse' && b.classList.contains('has')) showPop(k);
 });
 $('show-all').onclick=()=>{ selectedDay=null; renderCal(); renderList(); };
 $('list').addEventListener('click', e=>{
