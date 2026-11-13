@@ -65,6 +65,9 @@
   .pg-tools button.ask{background:#fff;color:#C4664F;box-shadow:0 0 0 1.5px #EFAAA0}
   .d-text{flex:1;width:100%;border:0;resize:none;outline:none;font-family:var(--d-font);font-size:var(--d-size);color:#5B3D33;background-color:transparent;padding:3px 4px 0;margin:0 -4px;box-sizing:content-box}
   .book .d-text,.book .d-text:focus{box-shadow:none;border-radius:0}
+  .d-text{overflow:hidden}
+  .d-measure{position:absolute!important;left:0;top:0;visibility:hidden;pointer-events:none;z-index:-1}
+  .pg-cont{font-size:12px;font-weight:800;color:#B39385}
   .d-text::placeholder{color:#CDB3A6}
   .d-btn{font-weight:800;font-size:14px;padding:10px 20px;border-radius:999px}
   .d-btn.done{color:#fff;background:linear-gradient(180deg,#F4A88E,#EA8B72);box-shadow:0 10px 18px -10px rgba(200,100,75,.8)}
@@ -127,44 +130,122 @@
   section.hidden = false;
 })();
 
-/* ---------- the diary: a book you flip through ---------- */
-const D = { spread:null, single:null, editing:null, anim:false, pendingAsk:null, len:0, lastSeen:0 };
+/* ---------- the diary: a book you flip through ----------
+   an entry is saved as one piece of text. the book lays it out across as
+   many pages as it needs (measured with the current font and page size),
+   so long entries simply continue on the next page.
+   while you write, the same thing happens live: when the page is full,
+   the book turns the page and you keep going. */
+const D = { spread:null, single:null, editing:null, anim:false, pendingAsk:null, len:0, lastSeen:0, focus:false };
 const NEWPAGE = {kind:'new'}, INTRO = {kind:'intro'};
-const bookPages = () => [INTRO, ...diary, NEWPAGE];
 const isSingle = () => window.matchMedia('(max-width: 760px)').matches;
 const longDate = t => new Date(t).toLocaleDateString('en',{weekday:'long',month:'long',day:'numeric',year:'numeric'}).toLowerCase();
+const newId = () => 'd'+Date.now()+Math.random().toString(36).slice(2,6);
 
-function pageInner(p, i){
+/* ---- measuring: a hidden copy of a writing page, used to see how much text fits ---- */
+let measurer = null, measureKey = '';
+const fitCache = new Map();
+function getMeasurer(){
+  if(!measurer){
+    measurer = document.createElement('div');
+    measurer.className = 'page right lines d-measure';
+    measurer.setAttribute('aria-hidden','true');
+    measurer.innerHTML = `<div class="pg-date">x</div><div class="pg-time">x</div><textarea class="d-text lines" tabindex="-1"></textarea><div class="pg-foot"><span class="pg-num">x</span></div>`;
+    $('book').appendChild(measurer);
+  }
+  const w = Math.round($('pg-right').getBoundingClientRect().width);
+  measurer.style.width = w + 'px';
+  const key = w + '|' + ($('book').dataset.font||'') + '|' + isSingle();
+  if(key!==measureKey){ measureKey = key; fitCache.clear(); }
+  return w > 80 ? measurer.querySelector('textarea') : null;
+}
+function fits(text){
+  const m = getMeasurer(); if(!m) return true;
+  m.value = text;
+  return m.scrollHeight <= m.clientHeight + 1;
+}
+// where a too-long text should break: as much as fits, ending at a space or new line
+function splitPoint(text){
+  let lo = 1, hi = text.length - 1, best = 1;
+  while(lo <= hi){
+    const mid = (lo + hi) >> 1;
+    if(fits(text.slice(0, mid))){ best = mid; lo = mid + 1; } else hi = mid - 1;
+  }
+  const head = text.slice(0, best);
+  const ws = Math.max(head.lastIndexOf(' '), head.lastIndexOf('\n'));
+  return ws > best * 0.5 ? ws + 1 : best;     // keep words whole; the space stays with the page above
+}
+// lay a whole entry out into page-sized pieces (joined back together they're the exact text)
+function paginate(text){
+  getMeasurer();
+  const key = measureKey + '§' + text;
+  if(fitCache.has(key)) return fitCache.get(key);
+  const parts = []; let rest = text, guard = 0;
+  while(rest.length && guard++ < 400){
+    if(fits(rest)){ parts.push(rest); rest = ''; break; }
+    const cut = splitPoint(rest);
+    parts.push(rest.slice(0, cut)); rest = rest.slice(cut);
+  }
+  if(!parts.length) parts.push('');
+  fitCache.set(key, parts);
+  return parts;
+}
+
+/* ---- the list of pages in the book ---- */
+function bookPages(){
+  const out = [INTRO];
+  const pushDraft = () => {
+    const ed = D.editing;
+    ed.chunks.forEach((t,k)=>out.push({kind:'draft', ts:ed.ts, text:t, part:k}));
+    out.push({kind:'editor', ts:ed.ts, part:ed.chunks.length});
+  };
+  for(const e of diary){
+    if(D.editing && D.editing.id===e.id){ pushDraft(); continue; }
+    const parts = paginate(e.text);
+    parts.forEach((t,k)=>out.push({kind:'entry', id:e.id, ts:e.ts, edited:e.edited, text:t, part:k, parts:parts.length}));
+  }
+  if(D.editing && D.editing.id===null) pushDraft();
+  if(!D.editing) out.push(NEWPAGE);
+  return out;
+}
+const spreadOf = i => Math.floor(i/2);
+const lastSpread = pages => spreadOf(pages.length-1);
+const viewOf = i => isSingle() ? i : spreadOf(i);
+const editorIndex = pages => pages.findIndex(p=>p.kind==='editor');
+
+/* ---- drawing one page (ghost = a picture of it, for the turning page) ---- */
+function pageInner(p, i, ghost){
   if(!p) return `<div class="blank-end">the end, for now ✿</div>`;
   if(p.kind==='intro') return `<div class="intro"><div class="blobby">${blob('loved')}</div><div class="belongs">this diary belongs to</div><div class="owner">${esc(userName)}</div><p>write whatever you need to. it's just for you.</p></div>`;
-  if(p.kind==='new'){
-    if(D.editing && D.editing.id===null) return editorInner(Date.now(), '');
-    return `<div class="pg-date">${longDate(Date.now())}</div><div class="pg-time">a fresh page</div>
+  if(p.kind==='new') return `<div class="pg-date">${longDate(Date.now())}</div><div class="pg-time">a fresh page</div>
       <div class="new-wrap"><div class="blobby">${blob('calm')}</div><button class="add-entry" data-act="new">+ add journal entry</button><small>${diary.length ? 'pick up where you left off' : 'your very first page'}</small></div>
       <div class="pg-foot"><span class="pg-num">page ${i}</span></div>`;
+  const cont = p.part > 0;
+  const head = `<div class="pg-date">${longDate(p.ts)}</div><div class="pg-time">${cont ? 'continued…' : clock(p.ts) + (p.edited ? ' · edited' : '')}${p.kind==='draft'||p.kind==='editor' ? ' · writing' : ''}</div>`;
+  if(p.kind==='editor'){
+    const body = ghost
+      ? `<div class="pg-body lines">${esc(D.editing.text)}</div>`
+      : `<textarea class="d-text lines" id="d-text" maxlength="12000" aria-label="journal entry" placeholder="${cont ? '' : 'dear diary…'}">${esc(D.editing.text)}</textarea>`;
+    return head + body + `<div class="pg-foot"><span class="pg-num">page ${i}${cont ? '' : ' · ctrl/⌘ + enter to finish'}</span><span class="pg-tools"><button class="d-btn quiet" data-act="cancel">cancel</button><button class="d-btn done" data-act="done">done</button></span></div>`;
   }
-  if(D.editing && D.editing.id===p.id) return editorInner(p.ts, p.text);
+  // a saved page, or a full page you've just written past
+  const lastPart = p.kind==='entry' && p.part===p.parts-1;
   const ask = D.pendingAsk===p.id;
-  return `<div class="pg-date">${longDate(p.ts)}</div><div class="pg-time">${clock(p.ts)}${p.edited?' · edited':''}</div>
-    <div class="pg-body lines">${esc(p.text)}</div>
-    <div class="pg-foot"><span class="pg-num">page ${i}</span><span class="pg-tools"><button data-act="edit" data-id="${esc(p.id)}">edit</button><button data-act="tear" data-id="${esc(p.id)}" class="${ask?'ask':''}">${ask?'tear it out?':'tear out'}</button></span></div>`;
+  const tools = lastPart ? `<span class="pg-tools"><button data-act="edit" data-id="${esc(p.id)}">edit</button><button data-act="tear" data-id="${esc(p.id)}" class="${ask?'ask':''}">${ask?'tear it out?':'tear out'}</button></span>`
+              : (p.kind==='entry' ? `<span class="pg-cont">continues →</span>` : '');
+  return head + `<div class="pg-body lines">${esc(p.text)}</div><div class="pg-foot"><span class="pg-num">page ${i}</span>${tools}</div>`;
 }
-function editorInner(ts, text){
-  return `<div class="pg-date">${longDate(ts)}</div><div class="pg-time">${clock(ts)} · writing</div>
-    <textarea class="d-text lines" id="d-text" maxlength="12000" aria-label="journal entry" placeholder="dear diary…">${esc(text)}</textarea>
-    <div class="pg-foot"><span class="pg-num">ctrl/⌘ + enter to finish</span><span class="pg-tools"><button class="d-btn quiet" data-act="cancel">cancel</button><button class="d-btn done" data-act="done">done</button></span></div>`;
-}
-function spreadOf(i){ return Math.floor(i/2); }
-function lastSpread(){ return spreadOf(bookPages().length-1); }
 
+/* ---- drawing the open book ---- */
 function renderDiary(){
-  const pages = bookPages(), single = isSingle();
-  const book=$('book'), L=$('pg-left'), R=$('pg-right');
   if(D.anim) return;
-  if(D.editing && document.getElementById('d-text')) return;   // don't wipe what you're typing
+  const single = isSingle();
+  const book=$('book'), L=$('pg-left'), R=$('pg-right');
   if(D.single!==single){ D.single=single; D.spread=null; D.len=0; }
   book.classList.toggle('single', single);
-  const last = single ? pages.length-1 : lastSpread();
+  const hadFocus = document.activeElement && document.activeElement.id==='d-text';
+  const pages = bookPages();
+  const last = single ? pages.length-1 : lastSpread(pages);
   // open at the newest page; if pages arrive (logging in, syncing) while you're at the end, stay at the end
   if(D.len!==pages.length){ if(D.spread===null || D.spread>=D.lastSeen) D.spread = last; D.len = pages.length; }
   if(D.spread===null || D.spread>last) D.spread = last;
@@ -174,55 +255,111 @@ function renderDiary(){
   L.innerHTML = li>=0 ? pageInner(pages[li], li) : '';
   R.innerHTML = pageInner(pages[ri], ri);
   L.classList.toggle('is-first', li<=0); R.classList.toggle('is-last', ri>=pages.length-1);
-  const ed = id => D.editing && pages[id] && ((pages[id].kind==='new' && D.editing.id===null) || pages[id].id===D.editing.id);
-  L.classList.toggle('editing', !!ed(li)); R.classList.toggle('editing', !!ed(ri));
+  const isEd = i => pages[i] && pages[i].kind==='editor';
+  L.classList.toggle('editing', isEd(li)); R.classList.toggle('editing', isEd(ri));
   $('d-prev').disabled = D.spread<=0 || !!D.editing;
   $('d-next').disabled = D.spread>=last || !!D.editing;
-  $('d-pages').textContent = single ? `page ${ri+1} of ${pages.length}` : `pages ${li+1}–${Math.min(ri+1,pages.length)} of ${pages.length}`;
-  $('d-count').textContent = diary.length ? `${diary.length} page${diary.length>1?'s':''} written` : 'no pages yet';
+  $('d-pages').textContent = (single || ri>=pages.length) ? `page ${(single?ri:li)+1} of ${pages.length}` : `pages ${li+1}–${ri+1} of ${pages.length}`;
+  $('d-count').textContent = diary.length ? `${diary.length} entr${diary.length>1?'ies':'y'} written` : 'no pages yet';
   const ta = document.getElementById('d-text');
-  if(ta){ ta.focus({preventScroll:true}); ta.setSelectionRange(ta.value.length, ta.value.length); }
+  if(ta){
+    ta.addEventListener('input', onWrite);
+    if(D.focus || hadFocus){
+      D.focus = false;
+      ta.focus({preventScroll:true});
+      const c = Math.min(D.editing.caret ?? ta.value.length, ta.value.length);
+      ta.setSelectionRange(c, c);
+    }
+  }
 }
+function syncLen(){ const pages = bookPages(); D.len = pages.length; D.lastSeen = isSingle() ? pages.length-1 : lastSpread(pages); }
 
-function flip(dir){
-  if(D.anim || D.editing) return;
+/* ---- turning pages ---- */
+function flip(dir, opts={}){
+  if(D.anim) return;
+  if(D.editing && !opts.force) return;
   const pages = bookPages(), single = isSingle();
-  const last = single ? pages.length-1 : lastSpread();
-  const target = D.spread + dir;
-  if(target<0 || target>last) return;
+  const last = single ? pages.length-1 : lastSpread(pages);
+  const target = opts.to ?? (D.spread + dir);
+  if(target<0 || target>last || target===D.spread) return;
+  dir = target > D.spread ? 1 : -1;
   D.pendingAsk = null;
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  if(reduce){ D.spread=target; renderDiary(); return; }
+  if(reduce){ D.spread=target; syncLen(); renderDiary(); return; }
   const book=$('book'), L=$('pg-left'), R=$('pg-right');
   const idx = s => single ? [-1, s] : [s*2, s*2+1];
   const [ol, or] = idx(D.spread), [nl, nr] = idx(target);
-  const under = dir>0 ? R : (single ? R : L);
+  const under = (dir>0 || single) ? R : L;
   const box = under.getBoundingClientRect(), bb = book.getBoundingClientRect();
   const f = document.createElement('div');
   f.className = 'flipper ' + (dir>0 ? 'fwd' : 'back');
   Object.assign(f.style, {left:(box.left-bb.left)+'px', top:(box.top-bb.top)+'px', width:box.width+'px', height:box.height+'px'});
   let front, backside, frontCls, backCls;
   if(single){
-    // one page at a time: the page lifts off and turns over
-    front = pageInner(pages[or], or); backside = ''; frontCls='right'; backCls='left';
-    if(dir<0){ f.className='flipper fwd go'; front = pageInner(pages[nr], nr); }
-  } else if(dir>0){ front = pageInner(pages[or], or); backside = pageInner(pages[nl], nl); frontCls='right'; backCls='left'; }
-  else { front = pageInner(pages[ol], ol); backside = pageInner(pages[nr], nr); frontCls='left'; backCls='right'; }
+    front = pageInner(pages[or], or, true); backside = ''; frontCls='right'; backCls='left';
+    if(dir<0){ f.className='flipper fwd go'; front = pageInner(pages[nr], nr, true); }
+  } else if(dir>0){ front = pageInner(pages[or], or, true); backside = pageInner(pages[nl], nl, true); frontCls='right'; backCls='left'; }
+  else { front = pageInner(pages[ol], ol, true); backside = pageInner(pages[nr], nr, true); frontCls='left'; backCls='right'; }
   f.innerHTML = `<div class="page ${frontCls} lines">${front}</div><div class="page ${backCls} lines backside">${backside}</div>`;
   // what's revealed underneath while the page turns
-  if(single){ if(dir>0) R.innerHTML = pageInner(pages[nr], nr); }
-  else if(dir>0) R.innerHTML = pageInner(pages[nr], nr);
-  else L.innerHTML = pageInner(pages[nl], nl);
+  if(dir>0) R.innerHTML = pageInner(pages[nr], nr, true);
+  else if(!single) L.innerHTML = pageInner(pages[nl], nl, true);
   D.anim = true; book.appendChild(f);
-  const finish = ()=>{ if(!D.anim) return; D.anim=false; D.spread=target; f.remove(); renderDiary(); };
-  if(single && dir<0){
-    // turning back on a phone: the previous page falls back into place
-    requestAnimationFrame(()=>requestAnimationFrame(()=>f.classList.remove('go')));
-  } else {
-    requestAnimationFrame(()=>requestAnimationFrame(()=>f.classList.add('go')));
-  }
+  const finish = ()=>{ if(!D.anim) return; D.anim=false; D.spread=target; syncLen(); f.remove(); renderDiary(); };
+  if(single && dir<0) requestAnimationFrame(()=>requestAnimationFrame(()=>f.classList.remove('go')));
+  else requestAnimationFrame(()=>requestAnimationFrame(()=>f.classList.add('go')));
   f.addEventListener('transitionend', finish, {once:true});
   setTimeout(finish, 1000);
+}
+// after the writing page moves, show the spread it's on (turning the page if needed)
+function followEditor(){
+  const pages = bookPages(), target = viewOf(editorIndex(pages));
+  D.focus = true;
+  if(target!==D.spread) flip(0, {force:true, to:target});
+  else { syncLen(); renderDiary(); }
+}
+
+/* ---- writing ---- */
+function onWrite(e){
+  const ta = e.target, ed = D.editing; if(!ed) return;
+  ed.text = ta.value; ed.caret = ta.selectionStart;
+  if(D.anim || fits(ed.text)) return;
+  // the page is full: keep what fits here, carry the rest onto a new page
+  let moved = false, caret = ed.caret;
+  while(ed.text.length > 1 && !fits(ed.text) && ed.chunks.length < 200){
+    const cut = splitPoint(ed.text);
+    ed.chunks.push(ed.text.slice(0, cut));
+    ed.text = ed.text.slice(cut);
+    caret = Math.max(0, caret - cut);
+    moved = true;
+  }
+  if(moved){ ed.caret = caret; followEditor(); }
+}
+function onBackspaceAtTop(e){
+  const ta = e.target, ed = D.editing;
+  if(!ed || !ed.chunks.length || ta.selectionStart!==0 || ta.selectionEnd!==0) return false;
+  e.preventDefault();
+  if(ta.value===''){
+    // an empty page: go back to the end of the previous one (the backspace deletes its last character)
+    const prev = ed.chunks.pop();
+    ed.text = prev.slice(0, -1); ed.caret = ed.text.length;
+    followEditor();
+  } else {
+    // there's writing here: the backspace removes the last character of the previous page
+    ed.chunks[ed.chunks.length-1] = ed.chunks[ed.chunks.length-1].slice(0, -1);
+    renderDiary();
+  }
+  return true;
+}
+function startWriting(id){
+  D.pendingAsk = null;
+  if(id===null){ D.editing = {id:null, ts:Date.now(), chunks:[], text:'', caret:0}; }
+  else {
+    const e = diary.find(x=>x.id===id); if(!e) return;
+    const parts = paginate(e.text);
+    D.editing = {id, ts:e.ts, chunks:parts.slice(0,-1), text:parts[parts.length-1], caret:parts[parts.length-1].length};
+  }
+  followEditor();
 }
 
 /* saving pages: works with your account, claude.ai, or this browser */
@@ -242,39 +379,45 @@ async function removeDiaryPage(id){
 }
 
 async function finishWriting(){
-  const ta = document.getElementById('d-text'); if(!ta || !D.editing) return;
-  const text = ta.value.replace(/\s+$/,'');
-  const ed = D.editing; const old = ed.id ? diary.find(x=>x.id===ed.id) : null;
-  if(!text.trim()){ return stopWriting(); }
-  if(old && old.text===text){ return stopWriting(); }
-  if(new Blob([text]).size > 13000){ toast('that page is getting long! finish here and keep going on a new page'); return; }
+  const ed = D.editing; if(!ed) return;
+  const ta = document.getElementById('d-text'); if(ta) ed.text = ta.value;
+  const text = (ed.chunks.join('') + ed.text).replace(/\s+$/,'');
+  const old = ed.id ? diary.find(x=>x.id===ed.id) : null;
+  if(!text.trim()) return stopWriting();
+  if(old && old.text===text) return stopWriting();
+  if(new Blob([text]).size > 13000){ toast('this entry is getting really long! finish here and keep going in a new one'); return; }
   const page = old
-    ? {...old, text, edited:Date.now(), id: (window.GardenGate && backend!=='cloud') ? 'd'+Date.now()+Math.random().toString(36).slice(2,6) : old.id}
-    : {id:'d'+Date.now()+Math.random().toString(36).slice(2,6), kind:'diary', ts:Date.now(), text};
+    ? {...old, text, edited:Date.now(), id: (window.GardenGate && backend!=='cloud') ? newId() : old.id}
+    : {id:newId(), kind:'diary', ts:ed.ts, text};
   const btn = document.querySelector('[data-act="done"]'); if(btn){ btn.disabled=true; btn.textContent='saving…'; }
   try{
     await storeDiaryPage(page, old ? old.id : null);
     D.editing = null;
-    const i = bookPages().findIndex(p=>p.id===page.id);
-    D.spread = isSingle() ? i : spreadOf(i);
-    D.len = bookPages().length; D.lastSeen = isSingle() ? D.len-1 : lastSpread();
+    const pages = bookPages();
+    const i = pages.map(p=>p.id).lastIndexOf(page.id);   // show the entry's last page
+    D.spread = viewOf(i); syncLen();
     renderDiary();
-    toast(blob('loved',{noShadow:true}) + (old ? ' page updated' : ' saved to your diary'));
+    toast(blob('loved',{noShadow:true}) + (old ? ' entry updated' : ' saved to your diary'));
   }catch(e){
     console.error(e);
     if(!old) diary = diary.filter(x=>x.id!==page.id);
     if(btn){ btn.disabled=false; btn.textContent='done'; }
-    toast("hmm, that page didn't save. try again?");
+    toast("hmm, that didn't save. try again?");
   }
 }
-function stopWriting(){ D.editing=null; renderDiary(); }
+function stopWriting(){
+  D.editing = null;
+  const pages = bookPages(); const last = isSingle() ? pages.length-1 : lastSpread(pages);
+  if(D.spread>last) D.spread = last;
+  syncLen(); renderDiary();
+}
 
 $('book').addEventListener('click', e=>{
   const act = e.target.closest('[data-act]');
   if(act){
     const a = act.dataset.act, id = act.dataset.id;
-    if(a==='new'){ D.editing={id:null}; D.pendingAsk=null; renderDiary(); }
-    else if(a==='edit'){ D.editing={id}; D.pendingAsk=null; renderDiary(); }
+    if(a==='new') startWriting(null);
+    else if(a==='edit') startWriting(id);
     else if(a==='done') finishWriting();
     else if(a==='cancel') stopWriting();
     else if(a==='tear'){
@@ -283,7 +426,8 @@ $('book').addEventListener('click', e=>{
     }
     return;
   }
-  if(D.editing || e.target.closest('textarea, a, input')) return;
+  if(D.editing){ const ta=document.getElementById('d-text'); if(ta && !e.target.closest('textarea')) ta.focus(); return; }
+  if(e.target.closest('textarea, a, input')) return;
   if(window.getSelection && String(window.getSelection()).length) return;   // selecting text, not turning
   if(isSingle()){
     const r = $('pg-right').getBoundingClientRect();
@@ -294,7 +438,8 @@ $('book').addEventListener('click', e=>{
 $('book').addEventListener('keydown', e=>{
   if(e.target.id==='d-text'){
     if(e.key==='Enter' && (e.metaKey||e.ctrlKey)){ e.preventDefault(); finishWriting(); }
-    if(e.key==='Escape'){ e.preventDefault(); stopWriting(); }
+    else if(e.key==='Escape'){ e.preventDefault(); stopWriting(); }
+    else if(e.key==='Backspace') onBackspaceAtTop(e);
     return;
   }
   if((e.key==='Enter'||e.key===' ') && (e.target.id==='pg-left'||e.target.id==='pg-right')){ e.preventDefault(); flip(e.target.id==='pg-left'?-1:1); }
@@ -302,8 +447,15 @@ $('book').addEventListener('keydown', e=>{
 });
 $('d-prev').onclick = ()=>flip(-1);
 $('d-next').onclick = ()=>flip(1);
-let dResize; addEventListener('resize', ()=>{ clearTimeout(dResize); dResize=setTimeout(()=>{ if(D.single!==isSingle() && !D.editing) renderDiary(); },150); });
-
+// page size or font changes mean the text needs laying out again
+let dResize; addEventListener('resize', ()=>{ clearTimeout(dResize); dResize=setTimeout(()=>{ if(D.editing){ D.editing.text = D.editing.chunks.join('') + D.editing.text; D.editing.chunks = []; reflowEditor(); } else renderDiary(); },200); });
+function reflowEditor(){
+  const ed = D.editing; if(!ed) return;
+  const parts = paginate(ed.text);
+  ed.chunks = parts.slice(0,-1); ed.text = parts[parts.length-1]; ed.caret = ed.text.length;
+  followEditor();
+}
+if(document.fonts && document.fonts.ready) document.fonts.ready.then(()=>{ fitCache.clear(); measureKey=''; if(D.editing){ D.editing.text = D.editing.chunks.join('') + D.editing.text; D.editing.chunks = []; reflowEditor(); } else renderDiary(); });
 
 /* ---------- handwriting picker ---------- */
 const DIARY_FONTS = ['cute','handwritten','neat'];
@@ -314,7 +466,12 @@ function setDiaryFont(f, remember){
     const on = b.dataset.font===f;
     b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1;
   });
-  if(remember){ try{ localStorage.setItem('lm_diary_font', f); }catch(e){} }
+  if(remember){
+    try{ localStorage.setItem('lm_diary_font', f); }catch(e){}
+    // a different font fits a different amount on each page
+    if(D.editing){ D.editing.text = D.editing.chunks.join('') + D.editing.text; D.editing.chunks = []; reflowEditor(); }
+    else renderDiary();
+  }
 }
 $('d-fonts').addEventListener('click', e=>{
   const b = e.target.closest('[data-font]'); if(b) setDiaryFont(b.dataset.font, true);
