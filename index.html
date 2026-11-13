@@ -579,9 +579,24 @@ function renderChart(){
     const lab = d.toLocaleString('en',{weekday:'short'}).slice(0,2).toLowerCase();
     if(list){
       const avg = list.reduce((a,e)=>a+MOODS[e.mood].score,0)/list.length;
-      const h = Math.max(24, avg/5*110); const c = MOODS[dominant(list)].c;
-      s += `<defs><linearGradient id="bar${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${c.b}"/><stop offset="1" stop-color="${c.d}"/></linearGradient></defs>`;
-      s += `<rect x="${x}" y="${base-h}" width="${bw}" height="${h}" rx="15" fill="url(#bar${i})"/><ellipse cx="${x+10}" cy="${base-h+11}" rx="4" ry="6" fill="#fff" opacity=".5"/>`;
+      const h = Math.max(24, avg/5*110);
+      // the day's emotions in the order you felt them (repeats in a row merged)
+      const seq = list.slice().sort((a,b)=>a.ts-b.ts).map(e=>e.mood).filter((m,j,a)=>j===0||m!==a[j-1]);
+      let stops;
+      if(new Set(seq).size===1){
+        const c = MOODS[seq[0]].c;
+        stops = `<stop offset="0" stop-color="${c.b}"/><stop offset="1" stop-color="${c.d}"/>`;
+      } else {
+        // ombre: first feeling of the day at the bottom, latest at the top
+        stops = seq.map((m,j)=>`<stop offset="${(1 - j/(seq.length-1)).toFixed(3)}" stop-color="${MOODS[m].c.b}"/>`).reverse().join('');
+      }
+      const names = [...new Set(seq)].map(m=>MOODS[m].label).join(', ');
+      s += `<defs><linearGradient id="bar${i}" x1="0" y1="0" x2="0" y2="1">${stops}</linearGradient>
+              <linearGradient id="sheen${i}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".28"/><stop offset=".45" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#8a5a46" stop-opacity=".12"/></linearGradient></defs>`;
+      s += `<g><title>${lab==='today'?'today':d.toLocaleDateString('en',{weekday:'long'}).toLowerCase()}: ${names}</title>
+              <rect x="${x}" y="${base-h}" width="${bw}" height="${h}" rx="15" fill="url(#bar${i})"/>
+              <rect x="${x}" y="${base-h}" width="${bw}" height="${h}" rx="15" fill="url(#sheen${i})"/>
+              <ellipse cx="${x+10}" cy="${base-h+11}" rx="4" ry="6" fill="#fff" opacity=".5"/></g>`;
     } else {
       s += `<rect x="${x+9}" y="${base-12}" width="12" height="12" rx="6" fill="none" stroke="#D9C2B5" stroke-width="2" stroke-dasharray="3 3"/>`;
     }
