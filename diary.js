@@ -18,7 +18,7 @@
 (function addDiaryToPage(){
   const font = document.createElement('link');
   font.rel = 'stylesheet';
-  font.href = 'https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&display=swap';
+  font.href = 'https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Caveat:wght@500&family=Patrick+Hand&display=swap';
   document.head.appendChild(font);
 
   const style = document.createElement('style');
@@ -26,6 +26,17 @@
   /* ---------- diary ---------- */
   .diary{background:linear-gradient(175deg,#F4D6CC 0%,#EBC3B6 100%);padding-bottom:30px}
   .d-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:6px}
+  .book{--d-font:"Gaegu","Nunito",cursive;--d-size:24px}
+  .book[data-font="handwritten"]{--d-font:"Caveat","Nunito",cursive;--d-size:27px}
+  .book[data-font="neat"]{--d-font:"Patrick Hand","Nunito",cursive;--d-size:22px}
+  .d-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .d-fonts{display:flex;gap:4px;padding:4px;border-radius:999px;background:rgba(255,255,255,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
+  .d-fonts button{padding:6px 14px;border-radius:999px;color:#7E5A4C;line-height:1.1;transition:background .2s,box-shadow .2s}
+  .d-fonts button:hover{background:rgba(255,255,255,.6)}
+  .d-fonts button[aria-checked="true"]{background:#FFF9F3;color:#5B3D33;box-shadow:0 6px 12px -8px rgba(107,74,63,.6)}
+  .d-fonts .f-cute{font-family:"Gaegu",cursive;font-size:19px;font-weight:700}
+  .d-fonts .f-handwritten{font-family:"Caveat",cursive;font-size:21px}
+  .d-fonts .f-neat{font-family:"Patrick Hand",cursive;font-size:17px}
   .d-count{font-weight:800;font-size:13px;color:#8a5e50;background:rgba(255,255,255,.55);padding:7px 14px;border-radius:999px}
   .book{position:relative;display:grid;grid-template-columns:1fr 1fr;padding:12px;border-radius:30px;
     background:linear-gradient(180deg,#E79C86,#D9826B);box-shadow:0 30px 50px -26px rgba(120,60,45,.7),inset 0 2px 0 rgba(255,255,255,.35);
@@ -46,13 +57,13 @@
   .lines{--lh:34px;background-image:linear-gradient(transparent calc(var(--lh) - 1px),#EAD7CC calc(var(--lh) - 1px));background-size:100% var(--lh);background-attachment:local;line-height:var(--lh)}
   .pg-date{font-family:"Fredoka","Nunito",sans-serif;font-weight:500;font-size:20px;line-height:1.2}
   .pg-time{font-size:12px;font-weight:800;color:#A17F72;margin:2px 0 10px}
-  .pg-body{flex:1;overflow:auto;font-family:"Gaegu","Nunito",cursive;font-size:24px;color:#5B3D33;white-space:pre-wrap;overflow-wrap:anywhere;padding-top:3px;margin:0 -4px;padding-left:4px;padding-right:4px}
+  .pg-body{flex:1;overflow:auto;font-family:var(--d-font);font-size:var(--d-size);color:#5B3D33;white-space:pre-wrap;overflow-wrap:anywhere;padding-top:3px;margin:0 -4px;padding-left:4px;padding-right:4px}
   .pg-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px;min-height:32px}
   .pg-num{font-size:12px;font-weight:800;color:#B39385}
   .pg-tools{display:flex;gap:6px}
   .pg-tools button{font-size:12px;font-weight:800;padding:6px 12px;border-radius:999px;background:#F7ECE4;color:#7E5A4C}
   .pg-tools button.ask{background:#fff;color:#C4664F;box-shadow:0 0 0 1.5px #EFAAA0}
-  .d-text{flex:1;width:100%;border:0;resize:none;outline:none;font-family:"Gaegu","Nunito",cursive;font-size:24px;color:#5B3D33;background-color:transparent;padding:3px 4px 0;margin:0 -4px;box-sizing:content-box}
+  .d-text{flex:1;width:100%;border:0;resize:none;outline:none;font-family:var(--d-font);font-size:var(--d-size);color:#5B3D33;background-color:transparent;padding:3px 4px 0;margin:0 -4px;box-sizing:content-box}
   .book .d-text,.book .d-text:focus{box-shadow:none;border-radius:0}
   .d-text::placeholder{color:#CDB3A6}
   .d-btn{font-weight:800;font-size:14px;padding:10px 20px;border-radius:999px}
@@ -65,10 +76,10 @@
   .new-wrap small{font-weight:700;color:#A17F72;font-size:13px}
   .intro{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px}
   .intro .belongs{font-weight:800;font-size:13px;letter-spacing:.06em;color:#A17F72}
-  .intro .owner{font-family:"Gaegu","Nunito",cursive;font-size:44px;font-weight:700;line-height:1.1}
+  .intro .owner{font-family:var(--d-font);font-size:calc(var(--d-size) * 1.85);font-weight:700;line-height:1.1}
   .intro p{margin:6px 0 0;font-weight:700;color:#8a6a5e;font-size:14px;max-width:280px;line-height:1.5}
   .intro .blobby{width:120px;margin-bottom:6px}
-  .blank-end{flex:1;display:flex;align-items:flex-end;justify-content:center;color:#CDB3A6;font-family:"Gaegu",cursive;font-size:22px}
+  .blank-end{flex:1;display:flex;align-items:flex-end;justify-content:center;color:#CDB3A6;font-family:var(--d-font);font-size:var(--d-size)}
   .flipper{position:absolute;z-index:3;transform-style:preserve-3d;transition:transform .75s cubic-bezier(.45,.05,.25,1);pointer-events:none}
   .flipper.fwd{transform-origin:left center}
   .flipper.fwd.go{transform:rotateY(-180deg)}
@@ -93,7 +104,14 @@
           <h2>my diary</h2>
           <p class="sub" style="margin-bottom:0">a quiet place for longer thoughts. click the right page to turn forward, the left page to go back.</p>
         </div>
-        <span class="d-count" id="d-count"></span>
+        <div class="d-right">
+          <div class="d-fonts" id="d-fonts" role="radiogroup" aria-label="diary handwriting">
+            <button role="radio" class="f-cute" data-font="cute">cute</button>
+            <button role="radio" class="f-handwritten" data-font="handwritten">handwritten</button>
+            <button role="radio" class="f-neat" data-font="neat">neat</button>
+          </div>
+          <span class="d-count" id="d-count"></span>
+        </div>
       </div>
       <div class="book" id="book">
         <div class="page left lines" id="pg-left" tabindex="0" aria-label="previous page"></div>
@@ -286,5 +304,29 @@ $('d-prev').onclick = ()=>flip(-1);
 $('d-next').onclick = ()=>flip(1);
 let dResize; addEventListener('resize', ()=>{ clearTimeout(dResize); dResize=setTimeout(()=>{ if(D.single!==isSingle() && !D.editing) renderDiary(); },150); });
 
+
+/* ---------- handwriting picker ---------- */
+const DIARY_FONTS = ['cute','handwritten','neat'];
+function setDiaryFont(f, remember){
+  if(!DIARY_FONTS.includes(f)) f = 'cute';
+  $('book').dataset.font = f;
+  document.querySelectorAll('#d-fonts [data-font]').forEach(b=>{
+    const on = b.dataset.font===f;
+    b.setAttribute('aria-checked', on); b.tabIndex = on ? 0 : -1;
+  });
+  if(remember){ try{ localStorage.setItem('lm_diary_font', f); }catch(e){} }
+}
+$('d-fonts').addEventListener('click', e=>{
+  const b = e.target.closest('[data-font]'); if(b) setDiaryFont(b.dataset.font, true);
+});
+$('d-fonts').addEventListener('keydown', e=>{
+  if(e.key!=='ArrowRight' && e.key!=='ArrowLeft') return;
+  e.preventDefault(); e.stopPropagation();
+  const i = DIARY_FONTS.indexOf($('book').dataset.font) + (e.key==='ArrowRight' ? 1 : -1);
+  const f = DIARY_FONTS[(i + DIARY_FONTS.length) % DIARY_FONTS.length];
+  setDiaryFont(f, true); document.querySelector(`#d-fonts [data-font="${f}"]`).focus();
+});
+let savedFont = 'cute'; try{ savedFont = localStorage.getItem('lm_diary_font') || 'cute'; }catch(e){}
+setDiaryFont(savedFont, false);
 
 renderDiary();
