@@ -240,7 +240,7 @@ async function submitKey(){
       let profile = {};
       try{ profile = await unseal(keys, r.check_iv, r.check_ct); }catch(e){}
       garden = {keys, name: profile.name || name};
-      entries = await decryptAll(r.entries);
+      setAll(await decryptAll(r.entries));
       lastName.set(name);
       return enterGarden(false);
     }
@@ -259,7 +259,7 @@ async function submitKey(){
     const box = await seal({app:'little-moods', name});
     const r = await call('garden_create', {p_id:keys.id, p_verifier:keys.verifier, p_check_iv:box.iv, p_check_ct:box.ct});
     if(r.error){ garden=null; gate.busy=false; gate.stage=1; gate.first=null; gate.seq=[]; renderGate(); return shake(friendly(r.error)); }
-    entries = []; lastName.set(name);
+    entries = []; diary = []; lastName.set(name);
     await bringOverLocalMoods();
     enterGarden(true);
   }catch(err){
@@ -272,7 +272,7 @@ async function submitKey(){
 async function decryptAll(rows){
   const out=[];
   for(const r of (rows||[])){
-    try{ const e = await unseal(garden.keys, r.iv, r.ct); e.id = r.id; if(MOODS[e.mood]) out.push(e); }catch(e){}
+    try{ const e = await unseal(garden.keys, r.iv, r.ct); e.id = r.id; if(MOODS[e.mood] || e.kind==='diary') out.push(e); }catch(e){}
   }
   return out.sort((a,b)=>b.ts-a.ts);
 }
@@ -302,7 +302,7 @@ function enterGarden(isNew){
 
 /* ---------- log out, auto log out, syncing ---------- */
 function logOut(){
-  garden=null; entries=[]; userName='lovely'; $('name').textContent=userName;
+  garden=null; entries=[]; diary=[]; if(typeof D!=='undefined'){ D.editing=null; D.spread=null; D.len=0; } userName='lovely'; $('name').textContent=userName;
   renderAll(); setStatus('logged out'); openGate('open');
 }
 $('logout').onclick = logOut;
@@ -318,7 +318,8 @@ async function refresh(){
     const r = await call('garden_open', {p_id:garden.keys.id, p_verifier:garden.keys.verifier});
     if(r.error || !garden) return;
     const next = await decryptAll(r.entries);
-    if(next.map(e=>e.id).join()!==entries.map(e=>e.id).join()){ entries=next; renderAll(); }
+    const sig = list => list.map(e=>e.id).sort().join();
+    if(sig(next)!==sig(entries.concat(diary))){ setAll(next); renderAll(); }
   }catch(e){}
 }
 document.addEventListener('visibilitychange', refresh);
@@ -343,6 +344,19 @@ window.GardenGate = {
     const keep = entries; entries = entries.filter(x=>x.id!==id); renderAll();
     try{ const r = await call('garden_remove', {p_id:garden.keys.id, p_verifier:garden.keys.verifier, p_entry_id:id}); if(r.error) throw r.error; }
     catch(e){ entries = keep; renderAll(); toast("couldn't remove that one"); }
+  },
+  // diary pages: an edit uploads the new version first, then removes the old one
+  async putDiary(page, oldId){
+    if(!garden) throw new Error('locked');
+    await addOne(page);
+    if(oldId && oldId!==page.id){
+      try{ await call('garden_remove', {p_id:garden.keys.id, p_verifier:garden.keys.verifier, p_entry_id:oldId}); }catch(e){}
+    }
+  },
+  async delDiary(id){
+    if(!garden) throw new Error('locked');
+    const r = await call('garden_remove', {p_id:garden.keys.id, p_verifier:garden.keys.verifier, p_entry_id:id});
+    if(r.error) throw new Error(r.error);
   },
   async saveName(n){
     if(!garden) return;
