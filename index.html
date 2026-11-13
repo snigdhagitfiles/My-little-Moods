@@ -49,7 +49,7 @@
   .card{border-radius:34px;padding:26px;box-shadow:var(--shadow),var(--inset);position:relative;overflow:hidden}
   .card h2{font-size:24px;margin-bottom:4px}
   .sub{color:var(--ink-soft);font-size:14px;font-weight:600;margin:0 0 16px}
-  .span-5{grid-column:span 5}.span-7{grid-column:span 7}.span-4{grid-column:span 4}.span-8{grid-column:span 8}.span-6{grid-column:span 6}
+  .span-12{grid-column:span 12}.span-5{grid-column:span 5}.span-7{grid-column:span 7}.span-4{grid-column:span 4}.span-8{grid-column:span 8}.span-6{grid-column:span 6}
   @media (max-width:960px){.span-5,.span-7,.span-4,.span-8,.span-6{grid-column:span 12}}
 
   /* hero */
@@ -214,6 +214,7 @@
       <a href="#garden">mood garden</a>
       <a href="#journal">journal</a>
       <a href="#breathe">breathe</a>
+      <a href="#diary">diary</a>
     </nav>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
       <span class="status" id="status">opening your garden…</span>
@@ -321,6 +322,9 @@
         <div class="deco" id="kind-deco"></div>
       </section>
     </div>
+
+    <!-- DIARY: filled in by diary.js -->
+    <section class="card diary span-12" id="diary" hidden></section>
   </div>
 
   <footer>made with soft colours & kind thoughts ✿</footer>
@@ -457,6 +461,12 @@ const QUOTES = [
   "what you feel today isn't forever."
 ];
 let entries = [];
+let diary = [];   // diary pages: {id, kind:'diary', ts, text}
+// moods and diary pages are stored together; this sorts them into the two lists
+function setAll(list){
+  entries = list.filter(e=>e && MOODS[e.mood]).sort((a,b)=>b.ts-a.ts);
+  diary = list.filter(e=>e && e.kind==='diary' && typeof e.text==='string').sort((a,b)=>a.ts-b.ts);
+}
 let sel = {mood:null, intensity:3, tags:new Set()};
 let calMonth = new Date(); calMonth.setDate(1);
 let selectedDay = null;
@@ -475,9 +485,9 @@ function toast(html){ const t=$('toast'); t.innerHTML=html; t.classList.add('sho
    anywhere else (like github pages): account.js gives you a real login that syncs
    across devices, with your moods encrypted by your 4-emotion key.
    without account.js, moods are kept unlocked in this one browser. */
-function plainLoad(){ try{ const n=localStorage.getItem('lm_name'); if(n){ userName=n; $('name').textContent=n; } return JSON.parse(localStorage.getItem('lm_entries')||'[]').sort((a,b)=>b.ts-a.ts); }catch(e){ return []; } }
+function plainLoad(){ try{ const n=localStorage.getItem('lm_name'); if(n){ userName=n; $('name').textContent=n; } return JSON.parse(localStorage.getItem('lm_entries')||'[]'); }catch(e){ return []; } }
 function localSave(){
-  try{ localStorage.setItem('lm_entries', JSON.stringify(entries)); localStorage.setItem('lm_name', userName); }catch(e){}
+  try{ localStorage.setItem('lm_entries', JSON.stringify(entries.concat(diary))); localStorage.setItem('lm_name', userName); }catch(e){}
 }
 
 async function initStore(){
@@ -491,7 +501,7 @@ async function initStore(){
     setStatus('opening your garden…');
     const timer = setTimeout(()=>setStatus('still reaching your saved moods…'),10000);
     entriesRef.orderBy('ts','desc').limit(1000).onSnapshot(snap=>{
-      entries = snap.docs.map(d=>({id:d.id, ...d.data()}));
+      setAll(snap.docs.map(d=>({id:d.id, ...d.data()})));
       if(!snap.metadata.fromCache){ clearTimeout(timer); setStatus('saved privately to your account ✓', true); }
       renderAll();
     }, err=>{ clearTimeout(timer); setStatus("couldn't load saved moods"); });
@@ -499,7 +509,7 @@ async function initStore(){
   } else {
     backend='local';
     if(window.GardenGate){ GardenGate.start(); }          // account.js is loaded
-    else { entries = plainLoad(); renderAll(); setStatus('saved on this device'); }
+    else { setAll(plainLoad()); renderAll(); setStatus('saved on this device'); }
   }
 }
 
@@ -537,7 +547,7 @@ function streak(days){
 }
 
 /* ---------- render ---------- */
-function renderAll(){ renderStats(); renderCal(); renderChart(); renderList(); }
+function renderAll(){ renderStats(); renderCal(); renderChart(); renderList(); if(typeof renderDiary==='function') renderDiary(); }
 
 function renderStats(){
   const days = byDay();
@@ -772,6 +782,7 @@ $('floaties').innerHTML = fl.map(([k,l,t,w,d])=>`<div class="floaty bob" style="
 renderAll();
 addEventListener('DOMContentLoaded', initStore);   // waits for account.js to load
 </script>
+<script src="diary.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="config.js"></script>
 <script src="account.js"></script>
